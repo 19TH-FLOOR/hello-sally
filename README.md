@@ -94,7 +94,7 @@ DB_NAME=hello_sally
 # AWS 설정
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_REGION=ap-southeast-2
+AWS_REGION=ap-northeast-2
 AWS_S3_BUCKET_NAME=your-s3-bucket-name
 ```
 
