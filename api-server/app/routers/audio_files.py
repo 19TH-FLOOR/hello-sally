@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 import os
-from app.services.s3 import upload_file_to_s3, s3_client, S3_BUCKET_NAME, delete_file_from_s3
+from app.services.s3 import upload_file_to_s3, s3_client, AWS_S3_BUCKET_NAME, delete_file_from_s3
 from app.db.models import AudioFile
 from app.db.session import get_db
 from sqlalchemy.orm import Session
@@ -77,7 +77,7 @@ def download_file(file_id: int, db: Session = Depends(get_db)):
         # 사전 서명된 URL 생성 (10분 유효)
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
-            Params={'Bucket': S3_BUCKET_NAME, 'Key': filename},
+            Params={'Bucket': AWS_S3_BUCKET_NAME, 'Key': filename},
             ExpiresIn=600  # 10분
         )
         
