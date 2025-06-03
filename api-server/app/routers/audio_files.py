@@ -15,7 +15,7 @@ router = APIRouter(redirect_slashes=False)
 def test():
     return {"message": "audio files router is alive"}
 
-@router.post("/")
+@router.post("")
 def upload_audio(file: UploadFile = File(...), db: Session = Depends(get_db)):
     # 파일 확장자 체크 (간단 예시: wav, mp3만 허용)
     allowed_ext = {".wav", ".mp3", ".m4a", ".ogg"}
