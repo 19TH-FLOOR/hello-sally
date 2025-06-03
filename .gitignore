@@ -92,8 +92,16 @@ poetry.lock
 # Pyre type checker
 .pyre/
 
+# Python Virtual Environment
+venv/
+.venv/
+ENV/
+env/
+.ENV/
+
 # VS Code
 .vscode/
+*.code-workspace
 
 # mypy
 .mypy_cache/
@@ -115,37 +123,148 @@ poetry.lock
 .Spotlight-V100
 .Trashes
 
+# Windows
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+*.lnk
+
+# WSL 관련
+.wslconfig
+wsl.conf
+
 # Docker
 *.pid
 *.seed
 *.pid.lock
+docker-compose.override.yml
 
-# dotenv
+# 환경변수 파일
 .env
 .env.*
-
-# Docker
-**/Dockerfile*
-**/docker-compose.yml
-
-# 기타
-*.swp
-*.swo
+!.env.template
+!.env.example
 
 # Log files
 *.log
+logs/
 
-# System Files
-Thumbs.db
-Desktop.ini
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next/
+out/
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# MySQL 관련
+# 일반적인 SQL 파일들은 무시하되, 마이그레이션/초기화 파일은 예외 처리
+*.sql
+!mysql/**/*.sql
+!**/migrations/**/*.sql
+!**/init/**/*.sql
+!**/schema/**/*.sql
+
+# MySQL 데이터 디렉토리
+mysql_data/
 
 # 기타 빌드/캐시
 .cache/
+build/
 
-# Python egg metadata, installed packages
-dist/
-*.egg-info/
-.eggs/
+# 시스템 파일
+*.swp
+*.swo
+*~
 
-# Local dev
-local.env 
+# 압축 파일
+*.zip
+*.tar.gz
+*.rar
+
+# IDE 관련
+*.sublime-project
+*.sublime-workspace
+
+# OS 생성 파일
+ehthumbs.db
+Thumbs.db
+
+# VS Code / Cursor 워크스페이스 설정 (팀 설정 공유용)
+# 기본적으로 .vscode/는 무시하지만, 팀 공유가 필요한 설정은 예외 처리
+!.vscode/settings.json
+!.vscode/extensions.json

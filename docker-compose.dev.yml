@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  api-server:
+    build:
+      context: ./api-server
+      dockerfile: Dockerfile
+    container_name: hello-sally-api-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api-server:/app
+      - /app/venv
+      - /app/__pycache__
+    env_file:
+      - ./api-server/.env.dev
+    environment:
+      - DEBUG=true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - hello-sally-dev-network
+    restart: on-failure:3
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: hello-sally-admin-dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./admin-dashboard/.env.dev
+    volumes:
+      - ./admin-dashboard:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api-server
+    networks:
+      - hello-sally-dev-network
+    restart: on-failure:3
+
+  db:
+    image: mysql:8.0
+    container_name: hello-sally-mysql-dev
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: hello_sally_dev
+      MYSQL_USER: sally_dev_user
+      MYSQL_PASSWORD: sally_dev_password
+      MYSQL_ROOT_PASSWORD: sally_dev_root_password
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - hello-sally-dev-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  mysql_dev_data:
+    driver: local
+
+networks:
+  hello-sally-dev-network:
+    driver: bridge 
