@@ -49,11 +49,13 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3306:3306"
+    env_file:
+      - ./api-server/.env.dev
     environment:
-      MYSQL_DATABASE: hello_sally_dev
-      MYSQL_USER: sally_dev_user
-      MYSQL_PASSWORD: sally_dev_password
-      MYSQL_ROOT_PASSWORD: sally_dev_root_password
+      MYSQL_DATABASE: ${DB_NAME:-hello_sally_dev}
+      MYSQL_USER: ${DB_USER:-sally_dev_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sally_dev_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-sally_dev_root_password}
     volumes:
       - mysql_dev_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
