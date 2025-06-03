@@ -58,7 +58,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-sally_dev_root_password}
     volumes:
       - mysql_dev_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./api-server/mysql/init:/docker-entrypoint-initdb.d
     networks:
       - hello-sally-dev-network
     restart: always
