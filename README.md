@@ -62,7 +62,7 @@ cp api-server/.env.template api-server/.env.dev
 
 # Admin 대시보드 환경변수 복사 및 설정  
 cp admin-dashboard/.env.template admin-dashboard/.env.dev
-# admin-dashboard/.env.dev 파일을 편집하여 필요시 API URL 확인
+# admin-dashboard/.env.dev 파일은 기본값으로 바로 사용 가능
 ```
 
 ### 2️⃣ 개발환경 실행
@@ -77,31 +77,34 @@ docker-compose -f docker-compose.dev.yml up --build
 - **Admin 대시보드**: http://localhost:3000
 - **데이터베이스**: localhost:3306
 
-## 🏗️ 개발환경 실행 방법
+## 📝 환경변수 설정
 
-```bash
-# 환경변수 설정
-cp api-server/.env.template api-server/.env.dev
-cp admin-dashboard/.env.template admin-dashboard/.env.dev
+### API 서버 환경변수 (`api-server/.env.dev`)
+```env
+# 실행 환경
+ENV=development
 
-# 서비스 시작
-docker-compose -f docker-compose.dev.yml up --build
+# 데이터베이스 설정
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=sally_user
+DB_PASSWORD=sally_password
+DB_NAME=hello_sally
 
-# 백그라운드 실행
-docker-compose -f docker-compose.dev.yml up -d --build
+# AWS 설정
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=ap-southeast-2
+AWS_S3_BUCKET_NAME=your-s3-bucket-name
+```
 
-# 특정 서비스만 시작
-docker-compose -f docker-compose.dev.yml up api-server
-docker-compose -f docker-compose.dev.yml up admin-dashboard
+### Admin 대시보드 환경변수 (`admin-dashboard/.env.dev`)
+```env
+# 실행 환경
+NODE_ENV=development
 
-# 로그 확인
-docker-compose -f docker-compose.dev.yml logs -f
-
-# 서비스 중지
-docker-compose -f docker-compose.dev.yml down
-
-# 볼륨 포함 완전 삭제
-docker-compose -f docker-compose.dev.yml down -v
+# API 서버 URL (내부 프록시용)
+API_URL=http://api-server:8000
 ```
 
 ## 🔧 개별 서비스 실행 (로컬 개발)
@@ -131,37 +134,6 @@ npm install
 
 # 개발 모드로 실행
 npm run dev
-```
-
-## 📝 환경변수 설정
-
-### API 서버 환경변수 (`api-server/.env.dev`)
-```env
-# 환경 설정
-ENV=development
-
-# 데이터베이스 설정
-DB_HOST=db
-DB_PORT=3306
-DB_USER=sally_dev_user
-DB_PASSWORD=sally_dev_password
-DB_NAME=hello_sally_dev
-
-# AWS S3 설정 (파일 업로드용)
-AWS_ACCESS_KEY_ID=your_aws_access_key_id
-AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_REGION=ap-southeast-2
-S3_BUCKET_NAME=your-s3-bucket-name
-```
-
-### Admin 대시보드 환경변수 (`admin-dashboard/.env.dev`)
-```env
-# Next.js 환경 설정
-NODE_ENV=development
-
-# API 서버 연결 설정
-API_URL=http://api-server:8000
-NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ## 🐳 Docker 명령어 모음
