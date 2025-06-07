@@ -7,7 +7,8 @@
 ### 백엔드 (API Server)
 - **FastAPI** - 고성능 Python 웹 프레임워크
 - **SQLAlchemy** - Python ORM
-- **MySQL** - 관계형 데이터베이스
+- **Alembic** - 데이터베이스 마이그레이션 도구
+- **MySQL** - 관계형 데이터베이스 (개발: Docker, 운영: AWS RDS)
 - **AWS S3** - 파일 저장소
 - **STT API** - 음성 텍스트 변환
 
@@ -35,12 +36,17 @@ hello-sally/
 │   │   ├── routers/                # API 라우터
 │   │   ├── schemas/                # Pydantic 스키마
 │   │   └── services/               # S3, STT API 연동
+│   ├── alembic/                    # 데이터베이스 마이그레이션
+│   │   ├── versions/               # 마이그레이션 버전 파일들
+│   │   ├── env.py                  # 환경 설정 (환경변수 연동)
+│   │   └── script.py.mako          # 마이그레이션 템플릿
 │   ├── mysql/                      # MySQL 관련 파일
-│   │   └── init/                   # 초기화 스크립트
+│   │   └── init/                   # 첫 설치용 초기화 스크립트
+│   ├── alembic.ini                 # Alembic 설정 파일
+│   ├── migrate.sh                  # DB 연결 대기 + 마이그레이션 실행 스크립트
 │   ├── Dockerfile                  # Dockerfile
-│   ├── requirements.txt            # Python 의존성
+│   ├── requirements.txt            # Python 의존성 (Alembic 포함)
 │   ├── .env.template               # 환경변수 템플릿
-│   └── .env.dev                    # 개발환경 환경변수 (.env.template 이용 로컬에서 생성 필요.)
 ├── admin-dashboard/                # Next.js 프론트엔드
 │   ├── src/                        # 소스 코드
 │   ├── public/                     # 정적 파일
@@ -48,13 +54,13 @@ hello-sally/
 │   ├── package.json                # Node.js 의존성
 │   ├── next.config.js              # Next.js 설정
 │   ├── .env.template               # 환경변수 템플릿
-│   └── .env.dev                    # 개발환경 환경변수 (.env.template 이용 로컬에서 생성 필요.)
 ├── ai-research/                    # AI 연구 및 프롬프트 관련 파일
 │   ├── automization_prompt.ipynb   # 자동화 프롬프트 연구 노트북
 │   └── prompt_20250603_205600.txt  # 프롬프트 백업 파일
-├── docker-compose.dev.yml          # 개발환경 Docker Compose
+├── docker-compose.dev.yml          # 개발환경 Docker Compose (MySQL)
+├── docker-compose.prod.yml         # 운영환경 Docker Compose (AWS RDS)
 ├── .gitignore                      # Git 무시 파일 목록
-└── README.md                       # 프로젝트 문서
+└── README.md                       # 프로젝트 문서 (이 파일)
 ```
 
 ## 🛠️ 빠른 시작 (개발환경)
@@ -83,7 +89,7 @@ docker-compose -f docker-compose.dev.yml up --build
   - **WSL2 환경**: http://127.0.0.1:3000 (localhost 대신 127.0.0.1 사용 필요)
 - **데이터베이스**: localhost:3306
 
-## 🐳 Docker 명령어 모음
+## 🐳 Docker 명령어 모음 (개발환경 기준)
 
 ```bash
 # 전체 서비스 시작
@@ -108,6 +114,152 @@ docker-compose -f docker-compose.dev.yml exec admin-dashboard bash
 docker-compose -f docker-compose.dev.yml exec db mysql -u sally_dev_user -p hello_sally_dev
 ```
 
+## 🗃️ 데이터베이스 마이그레이션 (Alembic)
+
+### 📊 마이그레이션 시스템 개요
+이 프로젝트는 **Alembic**을 사용하여 데이터베이스 스키마 변경을 관리합니다.
+- ✅ **환경변수 기반** - 개발/스테이징/운영 환경별 자동 설정
+- ✅ **버전 관리** - Git과 연동된 마이그레이션 이력 추적
+- ✅ **자동 실행** - 컨테이너 시작 시 자동 마이그레이션
+- ✅ **롤백 지원** - 문제 발생 시 이전 버전으로 복구 가능
+
+### 🏗️ 마이그레이션 구조
+```
+api-server/
+├── alembic/                        # Alembic 마이그레이션 디렉토리
+│   ├── versions/                   # 마이그레이션 버전 파일들
+│   │   └── 001_initial_migration.py
+│   ├── env.py                      # 환경 설정 (환경변수 연동)
+│   └── script.py.mako              # 마이그레이션 템플릿
+├── alembic.ini                     # Alembic 설정 파일
+├── migrate.sh                      # DB 연결 대기 + 마이그레이션 실행 스크립트
+└── mysql/init/                     # 첫 설치용 초기화 스크립트 (백업용)
+```
+
+### 🔄 마이그레이션 워크플로우
+
+#### **1️⃣ 새로운 마이그레이션 생성**
+```bash
+# 모델 변경 후 자동으로 마이그레이션 생성
+docker-compose exec api-server alembic revision --autogenerate -m "Add user table"
+
+# 수동 마이그레이션 생성 (복잡한 데이터 변경 시)
+docker-compose exec api-server alembic revision -m "Custom data migration"
+```
+
+#### **2️⃣ 마이그레이션 적용**
+```bash
+# 최신 버전으로 업그레이드
+docker-compose exec api-server alembic upgrade head
+
+# 특정 버전으로 업그레이드
+docker-compose exec api-server alembic upgrade 002
+```
+
+#### **3️⃣ 마이그레이션 상태 확인**
+```bash
+# 현재 마이그레이션 버전 확인
+docker-compose exec api-server alembic current
+
+# 마이그레이션 이력 확인
+docker-compose exec api-server alembic history
+
+# 마이그레이션 차이 확인
+docker-compose exec api-server alembic show 001
+```
+
+#### **4️⃣ 롤백 (문제 발생 시)**
+```bash
+# 이전 버전으로 롤백
+docker-compose exec api-server alembic downgrade -1
+
+# 특정 버전으로 롤백
+docker-compose exec api-server alembic downgrade 001
+
+# 초기 상태로 롤백
+docker-compose exec api-server alembic downgrade base
+```
+
+### 🌍 환경별 설정
+
+#### **개발환경 (Docker MySQL)**
+```bash
+# .env.dev 설정 예시
+ENV=development
+DB_HOST=db
+DB_NAME=hello_sally_dev
+DB_USER=sally_dev_user
+DB_PASSWORD=sally_dev_password
+```
+
+#### **운영환경 (AWS RDS)**
+```bash
+# .env.prod 설정 예시
+ENV=production
+DB_HOST=your-rds-endpoint.rds.amazonaws.com
+DB_NAME=hello_sally_prod
+DB_USER=sally_prod_user
+DB_PASSWORD=your-secure-password
+```
+
+### 🚀 운영환경 배포
+
+#### **운영환경 Docker Compose 실행**
+```bash
+# 운영환경 설정으로 실행 (AWS RDS 사용)
+docker-compose -f docker-compose.prod.yml up -d
+
+# 마이그레이션 상태 확인
+docker-compose -f docker-compose.prod.yml exec api-server alembic current
+```
+
+### ⚠️ 마이그레이션 주의사항
+
+#### **개발 시 주의점**
+1. **모델 변경 후 반드시 마이그레이션 생성**: `--autogenerate` 사용
+2. **생성된 마이그레이션 검토**: 자동 생성이 항상 완벽하지 않음
+3. **테스트**: 로컬에서 충분히 테스트 후 커밋
+4. **백업**: 운영환경 적용 전 DB 백업 필수
+
+#### **운영 배포 시 주의점**
+```bash
+# 1. 운영 DB 백업
+mysqldump -h RDS_ENDPOINT -u USER -p DATABASE_NAME > backup.sql
+
+# 2. 마이그레이션 검증 (Dry-run)
+docker-compose exec api-server alembic upgrade head --sql
+
+# 3. 점검 모드로 배포
+# 4. 마이그레이션 실행 및 검증
+# 5. 서비스 재개
+```
+
+### 🔧 마이그레이션 스크립트 예시
+
+#### **테이블 추가**
+```python
+def upgrade() -> None:
+    op.create_table(
+        'users',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('email', sa.String(length=255), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+
+def downgrade() -> None:
+    op.drop_table('users')
+```
+
+#### **컬럼 추가**
+```python
+def upgrade() -> None:
+    op.add_column('audio_files', sa.Column('duration', sa.Integer(), nullable=True))
+
+def downgrade() -> None:
+    op.drop_column('audio_files', 'duration')
+```
+
 ## 🚨 문제 해결
 
 ### Docker 관련 문제
@@ -120,6 +272,20 @@ docker-compose -f docker-compose.dev.yml down -v
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
+### 마이그레이션 관련 문제
+```bash
+# 마이그레이션 충돌 해결
+docker-compose exec api-server alembic merge heads
+
+# 마이그레이션 리셋 (개발환경만)
+docker-compose down -v
+docker-compose up --build
+
+# Alembic 버전 테이블 수동 조작 (긴급시만)
+docker-compose exec db mysql -u sally_dev_user -p hello_sally_dev
+# DELETE FROM alembic_version; (주의: 데이터 손실 위험)
+```
+
 ## 📄 저작권 및 라이선스
 
 **이 프로젝트는 19층 사이드 프로젝트 팀의 사유재산입니다.**
@@ -128,11 +294,10 @@ docker-compose -f docker-compose.dev.yml up --build
 - 팀 구성원이 아닌 외부인의 무단 사용, 복제, 배포를 금지합니다.
 - 상업적 이용은 팀 내부 승인이 필요합니다.
 
-## 📧 hellosally.contact@gmail.com
-
 **19층 사이드 프로젝트 팀**
-
 프로젝트에 대한 질문이나 제안사항이 있으시면 팀 내부 채널을 통해 연락해주세요!
+
+📧 hellosally.contact@gmail.com
 
 ---
 *Made with ❤️ by 19층 Team*

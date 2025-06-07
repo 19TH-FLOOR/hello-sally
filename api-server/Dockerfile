@@ -7,4 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# MySQL 초기화 스크립트와 마이그레이션 스크립트에 실행 권한 부여
+RUN chmod +x mysql/init/*.sh && chmod +x migrate.sh
+
+CMD ["./migrate.sh"]

@@ -42,8 +42,8 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestSizeMiddleware)
 
-# DB 테이블 자동 생성
-Base.metadata.create_all(bind=engine)
+# DB 테이블은 Alembic 마이그레이션으로 관리
+# Base.metadata.create_all(bind=engine)  # Alembic 사용으로 주석 처리
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(audio_files.router, prefix="/audio-files", tags=["AudioFiles"])

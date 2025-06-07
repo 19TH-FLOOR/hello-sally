@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  api-server:
+    build:
+      context: ./api-server
+      dockerfile: Dockerfile
+    container_name: hello-sally-api-prod
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./api-server/.env.prod
+    environment:
+      - ENV=production
+    networks:
+      - hello-sally-prod-network
+    restart: unless-stopped
+    # AWS RDS 사용으로 DB 서비스 의존성 제거
+
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: hello-sally-admin-prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./admin-dashboard/.env.prod
+    depends_on:
+      - api-server
+    networks:
+      - hello-sally-prod-network
+    restart: unless-stopped
+
+  # 운영환경에서는 AWS RDS 사용으로 DB 서비스 제거
+
+networks:
+  hello-sally-prod-network:
+    driver: bridge 

@@ -18,16 +18,16 @@ def get_db_url():
         DB_PORT = os.getenv("DB_PORT", "3306")
         DB_USER = os.getenv("DB_USER")
         DB_PASSWORD = os.getenv("DB_PASSWORD")
-        DB_NAME = os.getenv("DB_NAME", "hello_sally")
+        DB_NAME = os.getenv("DB_NAME", "hello_sally_dev")
         
         return f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     else:
         # 개발 환경 - Docker MySQL
         DB_HOST = os.getenv("DB_HOST", "db")  # docker-compose의 서비스명
         DB_PORT = os.getenv("DB_PORT", "3306")
-        DB_USER = os.getenv("DB_USER", "sally_user")
-        DB_PASSWORD = os.getenv("DB_PASSWORD", "sally_password")
-        DB_NAME = os.getenv("DB_NAME", "hello_sally")
+        DB_USER = os.getenv("DB_USER", "sally_dev_user")
+        DB_PASSWORD = os.getenv("DB_PASSWORD", "sally_dev_password")
+        DB_NAME = os.getenv("DB_NAME", "hello_sally_dev")
         
         return f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
 
