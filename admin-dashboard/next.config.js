@@ -8,7 +8,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: process.env.API_URL + '/:path*', // API_URL=http://api-server:8000 (Docker 내부)
+        destination: (process.env.API_URL || 'http://api-server:8000') + '/:path*', // API_URL=http://api-server:8000 (Docker 내부)
       },
     ]
   },
