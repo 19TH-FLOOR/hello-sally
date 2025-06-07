@@ -5,7 +5,8 @@ WORKDIR /app
 
 # 의존성 설치
 COPY package.json ./
-RUN npm ci --only=production
+# 먼저 일반 설치로 package-lock.json 생성
+RUN npm install --omit=dev
 
 # 소스 코드 복사
 COPY . .
@@ -27,7 +28,7 @@ COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"] 
