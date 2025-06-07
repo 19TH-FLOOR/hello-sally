@@ -1,26 +1,144 @@
-name: Deploy to EC2
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  GITHUB_REPOSITORY: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd /home/ubuntu/hello-sally
-          git pull origin main
-          docker compose down
-          docker compose up --build -d
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for API Server
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}/api-server
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push API Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api-server
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for Admin Dashboard
+        id: meta-admin
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}/admin-dashboard
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Admin Dashboard
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin-dashboard
+          file: ./admin-dashboard/Dockerfile.prod
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-admin.outputs.tags }}
+          labels: ${{ steps.meta-admin.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # 프로젝트 디렉토리로 이동 및 생성
+            PROJECT_DIR="/home/${{ secrets.EC2_USERNAME }}/hello-sally"
+            mkdir -p $PROJECT_DIR && cd $PROJECT_DIR
+            
+            # Git 저장소 클론 또는 업데이트
+            if [ ! -d ".git" ]; then
+              echo "📥 Cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git .
+            else
+              echo "🔄 Updating repository..."
+              git fetch origin && git reset --hard origin/main
+            fi
+            
+            # 환경 변수 로드
+            echo "🔑 Loading environment variables from Parameter Store..."
+            export GITHUB_REPOSITORY="${{ github.repository }}"
+            ./scripts/load-env.sh && source /tmp/prod-env
+            
+            # GitHub Container Registry 로그인
+            echo "🐳 Logging in to GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # 최신 이미지 Pull 및 배포
+            echo "⬇️ Pulling latest images..."
+            docker pull ghcr.io/${{ github.repository }}/api-server:latest
+            docker pull ghcr.io/${{ github.repository }}/admin-dashboard:latest
+            
+            echo "🚀 Deploying services..."
+            source /tmp/prod-env && docker-compose -f docker-compose.prod.yml down --remove-orphans
+            source /tmp/prod-env && docker-compose -f docker-compose.prod.yml up -d
+            
+            # 헬스 체크
+            echo "🏥 Performing health check..."
+            sleep 30
+            
+            if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ API Server is healthy"
+            else
+              echo "❌ API Server health check failed" && exit 1
+            fi
+            
+            if curl -f http://localhost:3000/ > /dev/null 2>&1; then
+              echo "✅ Admin Dashboard is healthy"
+            else
+              echo "❌ Admin Dashboard health check failed" && exit 1
+            fi
+            
+            # 정리
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            echo "🎉 Deployment completed successfully!"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"

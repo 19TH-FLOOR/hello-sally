@@ -2,30 +2,36 @@ version: '3.8'
 
 services:
   api-server:
-    build:
-      context: ./api-server
-      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY}/api-server:latest
     container_name: hello-sally-api-prod
     ports:
-      - "8000:8000"
-    env_file:
-      - ./api-server/.env.prod
+      - "${API_SERVER_PORT}:8000"
     environment:
-      - ENV=production
+      - ENV=${ENV}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DEBUG=${DEBUG}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
     networks:
       - hello-sally-prod-network
     restart: unless-stopped
     # AWS RDS 사용으로 DB 서비스 의존성 제거
 
   admin-dashboard:
-    build:
-      context: ./admin-dashboard
-      dockerfile: Dockerfile
+    image: ghcr.io/${GITHUB_REPOSITORY}/admin-dashboard:latest
     container_name: hello-sally-admin-prod
     ports:
-      - "3000:3000"
-    env_file:
-      - ./admin-dashboard/.env.prod
+      - "${ADMIN_PORT}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - API_URL=http://api-server:8000
+      - NEXT_PUBLIC_API_URL=http://${EC2_IP}:${API_SERVER_PORT}
     depends_on:
       - api-server
     networks:

@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // 프로덕션 빌드를 위한 standalone 출력
+  output: 'standalone',
   // API 서버로 요청을 프록시
   async rewrites() {
     return [
