@@ -4,10 +4,10 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # package.json과 package-lock.json 복사 (캐싱 최적화)
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
 # 의존성 설치 (프로덕션 의존성만)
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # 개발 의존성도 설치 (빌드를 위해)
 RUN npm ci --ignore-scripts
