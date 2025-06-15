@@ -25,6 +25,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# public 디렉토리 생성
+RUN mkdir -p public
+
 # 필요한 파일들만 복사
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

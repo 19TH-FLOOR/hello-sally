@@ -13,4 +13,4 @@ COPY . .
 # 개발 모드로 실행
 ENV NODE_ENV=development
 EXPOSE 3000
-CMD ["npm", "run", "dev"] 
+CMD ["npm", "run", "dev"]
