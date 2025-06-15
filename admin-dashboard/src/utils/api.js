@@ -114,4 +114,16 @@ export const downloadFile = async (fileId, filename) => {
 export const deleteAudioFile = async (fileId) => {
   const response = await api.delete(`/audio-files/${fileId}`);
   return response.data;
+};
+
+// STT 처리 시작
+export const startTranscription = async (fileId) => {
+  const response = await api.post(`/audio-files/${fileId}/transcribe`);
+  return response.data;
+};
+
+// STT 결과 조회
+export const getTranscript = async (fileId) => {
+  const response = await api.get(`/audio-files/${fileId}/transcript`);
+  return response.data;
 }; 

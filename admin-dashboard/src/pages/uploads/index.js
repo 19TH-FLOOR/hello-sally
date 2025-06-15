@@ -8,7 +8,8 @@ import {
 } from '@mui/material';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getAudioFiles, downloadFile, deleteAudioFile } from '../../utils/api';
+import TranscribeIcon from '@mui/icons-material/RecordVoiceOver';
+import { getAudioFiles, downloadFile, deleteAudioFile, startTranscription, getTranscript } from '../../utils/api';
 
 export default function UploadList() {
   // API에서 파일 목록 조회
@@ -22,6 +23,10 @@ export default function UploadList() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [downloadLoading, setDownloadLoading] = useState(false);
+  
+  // STT 관련 상태
+  const [transcribeLoading, setTranscribeLoading] = useState({});
+  const [transcriptDialog, setTranscriptDialog] = useState({ open: false, file: null, transcript: '' });
 
   if (isLoading) {
     return (
@@ -120,6 +125,53 @@ export default function UploadList() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  // STT 처리 시작
+  const handleTranscribe = async (file) => {
+    setTranscribeLoading({ ...transcribeLoading, [file.id]: true });
+    try {
+      await startTranscription(file.id);
+      setSnackbar({
+        open: true,
+        message: 'STT 처리가 시작되었습니다. 잠시 후 결과를 확인해주세요.',
+        severity: 'success'
+      });
+      // 목록 새로고침
+      refetch();
+    } catch (err) {
+      console.error('STT 처리 시작 실패:', err);
+      setSnackbar({
+        open: true,
+        message: 'STT 처리 시작 중 오류가 발생했습니다.',
+        severity: 'error'
+      });
+    } finally {
+      setTranscribeLoading({ ...transcribeLoading, [file.id]: false });
+    }
+  };
+
+  // STT 결과 보기
+  const handleViewTranscript = async (file) => {
+    try {
+      const result = await getTranscript(file.id);
+      setTranscriptDialog({
+        open: true,
+        file: file,
+        transcript: result.stt_transcript || '텍스트 변환 결과가 없습니다.'
+      });
+    } catch (err) {
+      console.error('STT 결과 조회 실패:', err);
+      setSnackbar({
+        open: true,
+        message: 'STT 결과 조회 중 오류가 발생했습니다.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleTranscriptDialogClose = () => {
+    setTranscriptDialog({ open: false, file: null, transcript: '' });
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -143,6 +195,7 @@ export default function UploadList() {
               <TableCell>파일명</TableCell>
               <TableCell>확장자</TableCell>
               <TableCell>업로드 일시</TableCell>
+              <TableCell>STT 상태</TableCell>
               <TableCell>작업</TableCell>
             </TableRow>
           </TableHead>
@@ -164,6 +217,22 @@ export default function UploadList() {
                 </TableCell>
                 <TableCell>{formatDate(file.uploaded_at)}</TableCell>
                 <TableCell>
+                  <Chip 
+                    label={
+                      file.stt_status === 'pending' ? '대기' :
+                      file.stt_status === 'processing' ? '처리중' :
+                      file.stt_status === 'completed' ? '완료' :
+                      file.stt_status === 'failed' ? '실패' : '알 수 없음'
+                    }
+                    size="small"
+                    color={
+                      file.stt_status === 'completed' ? 'success' :
+                      file.stt_status === 'processing' ? 'warning' :
+                      file.stt_status === 'failed' ? 'error' : 'default'
+                    }
+                  />
+                </TableCell>
+                <TableCell>
                   <Box sx={{ display: 'flex' }}>
                     <Tooltip title="다운로드">
                       <IconButton 
@@ -174,6 +243,32 @@ export default function UploadList() {
                         <CloudDownloadIcon />
                       </IconButton>
                     </Tooltip>
+                    
+                    {/* STT 처리 버튼 */}
+                    {file.stt_status === 'pending' && (
+                      <Tooltip title="STT 처리 시작">
+                        <IconButton 
+                          color="secondary" 
+                          onClick={() => handleTranscribe(file)}
+                          disabled={transcribeLoading[file.id]}
+                        >
+                          {transcribeLoading[file.id] ? <CircularProgress size={20} /> : <TranscribeIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    
+                    {/* STT 결과 보기 버튼 */}
+                    {file.stt_status === 'completed' && (
+                      <Tooltip title="STT 결과 보기">
+                        <IconButton 
+                          color="info" 
+                          onClick={() => handleViewTranscript(file)}
+                        >
+                          <TranscribeIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    
                     <Tooltip title="삭제">
                       <IconButton 
                         color="error" 
@@ -188,7 +283,7 @@ export default function UploadList() {
             ))}
             {files.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={6} align="center">
                   업로드된 파일이 없습니다.
                 </TableCell>
               </TableRow>
@@ -225,6 +320,30 @@ export default function UploadList() {
             disabled={deleteLoading}
           >
             {deleteLoading ? '삭제 중...' : '삭제'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* STT 결과 대화상자 */}
+      <Dialog
+        open={transcriptDialog.open}
+        onClose={handleTranscriptDialogClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          STT 결과 - {transcriptDialog.file?.filename}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              {transcriptDialog.transcript}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleTranscriptDialogClose}>
+            닫기
           </Button>
         </DialogActions>
       </Dialog>
