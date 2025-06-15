@@ -114,7 +114,7 @@ jobs:
   deploy:
     needs: [detect-changes, build-and-push]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.api-changed == 'true' || needs.detect-changes.outputs.admin-changed == 'true' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -152,16 +152,12 @@ jobs:
             echo "🐳 Logging in to GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 변경된 서비스만 이미지 Pull
-            if [ "${{ needs.detect-changes.outputs.api-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "⬇️ Pulling API Server image..."
-              docker pull ghcr.io/${GITHUB_REPOSITORY}/api-server:latest
-            fi
-            
-            if [ "${{ needs.detect-changes.outputs.admin-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "⬇️ Pulling Admin Dashboard image..."
-              docker pull ghcr.io/${GITHUB_REPOSITORY}/admin-dashboard:latest
-            fi
+            # 항상 최신 이미지를 Pull
+            echo "⬇️ Pulling API Server image..."
+            docker pull ghcr.io/${GITHUB_REPOSITORY}/api-server:latest
+
+            echo "⬇️ Pulling Admin Dashboard image..."
+            docker pull ghcr.io/${GITHUB_REPOSITORY}/admin-dashboard:latest
             
             echo "🚀 Deploying services..."
             source /tmp/prod-env && docker-compose -f docker-compose.prod.yml down --remove-orphans
