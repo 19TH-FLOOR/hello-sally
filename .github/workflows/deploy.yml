@@ -163,6 +163,18 @@ jobs:
             source /tmp/prod-env && docker-compose -f docker-compose.prod.yml down --remove-orphans
             source /tmp/prod-env && docker-compose -f docker-compose.prod.yml up -d
             
+            # 컨테이너 시작 대기
+            echo "⏳ Waiting for containers to start..."
+            sleep 10
+            
+            # 컨테이너 상태 확인
+            echo "📋 Container status:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            
+            # API 서버 로그 확인 (데이터베이스 초기화 과정)
+            echo "📊 API Server initialization logs:"
+            docker logs hello-sally-api-prod --tail 50
+            
             # 헬스 체크
             echo "🏥 Performing health check..."
             sleep 30

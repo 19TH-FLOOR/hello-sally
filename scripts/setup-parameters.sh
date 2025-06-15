@@ -16,7 +16,7 @@ declare -A PARAMS=(
     # 데이터베이스 설정 (RDS)
     ["DB_HOST"]="hellosally-mysql.cbgoi6k0kq82.ap-northeast-2.rds.amazonaws.com"
     ["DB_PORT"]="3306"
-    ["DB_NAME"]="hello_sally"
+    ["DB_NAME"]="hello_sally_prod"
     ["DB_USER"]="admin"
     ["DB_PASSWORD"]="your_db_password_here"  # 실제 비밀번호로 변경 필요
     
