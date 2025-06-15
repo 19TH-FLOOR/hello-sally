@@ -47,6 +47,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set lower-case repository env
+        id: set-repo-lc
+        run: |
+          repo_lc=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')
+          echo "GITHUB_REPOSITORY_LC=$repo_lc" >> $GITHUB_ENV
+          echo "repo_lc=$repo_lc" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,7 +69,7 @@ jobs:
         id: meta-api
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}/api-server
+          images: ${{ env.REGISTRY }}/${{ steps.set-repo-lc.outputs.repo_lc }}/api-server
           tags: |
             type=ref,event=branch
             type=sha
@@ -85,7 +92,7 @@ jobs:
         id: meta-admin
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.GITHUB_REPOSITORY }}/admin-dashboard
+          images: ${{ env.REGISTRY }}/${{ steps.set-repo-lc.outputs.repo_lc }}/admin-dashboard
           tags: |
             type=ref,event=branch
             type=sha
@@ -127,7 +134,8 @@ jobs:
             # Git 저장소 클론 또는 업데이트
             if [ ! -d ".git" ]; then
               echo "📥 Cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git .
+              # GitHub Actions의 GITHUB_TOKEN을 사용해 인증하여 클론 (private repo 지원)
+              git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
             else
               echo "🔄 Updating repository..."
               git fetch origin && git reset --hard origin/main
@@ -135,7 +143,9 @@ jobs:
             
             # 환경 변수 로드
             echo "🔑 Loading environment variables from Parameter Store..."
-            export GITHUB_REPOSITORY="${{ github.repository }}"
+            # 레포지토리명을 소문자로 변환하여 통일
+            REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            export GITHUB_REPOSITORY="$REPO_LC"
             ./scripts/load-env.sh && source /tmp/prod-env
             
             # GitHub Container Registry 로그인
@@ -145,12 +155,12 @@ jobs:
             # 변경된 서비스만 이미지 Pull
             if [ "${{ needs.detect-changes.outputs.api-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
               echo "⬇️ Pulling API Server image..."
-              docker pull ghcr.io/${{ github.repository }}/api-server:latest
+              docker pull ghcr.io/${GITHUB_REPOSITORY}/api-server:latest
             fi
             
             if [ "${{ needs.detect-changes.outputs.admin-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
               echo "⬇️ Pulling Admin Dashboard image..."
-              docker pull ghcr.io/${{ github.repository }}/admin-dashboard:latest
+              docker pull ghcr.io/${GITHUB_REPOSITORY}/admin-dashboard:latest
             fi
             
             echo "🚀 Deploying services..."
