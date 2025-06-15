@@ -3,13 +3,20 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# 의존성 설치
-COPY package.json ./
-# 먼저 일반 설치로 package-lock.json 생성
-RUN npm install --omit=dev
+# package.json과 package-lock.json 복사 (캐싱 최적화)
+COPY package*.json ./
+
+# 의존성 설치 (프로덕션 의존성만)
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+
+# 개발 의존성도 설치 (빌드를 위해)
+RUN npm ci --ignore-scripts
 
 # 소스 코드 복사
 COPY . .
+
+# public 디렉토리가 없으면 생성 (빌더 단계에서)
+RUN mkdir -p /app/public
 
 # 빌드 시점에 필요한 환경변수 설정
 ENV API_URL=http://api-server:8000
@@ -25,13 +32,16 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# public 디렉토리 생성
-RUN mkdir -p public
+# 사용자 추가 (보안 강화)
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
 # 필요한 파일들만 복사
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 
 EXPOSE 3000
 

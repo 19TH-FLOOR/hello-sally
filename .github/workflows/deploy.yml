@@ -10,7 +10,34 @@ env:
   GITHUB_REPOSITORY: ${{ github.repository }}
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api-changed: ${{ steps.changes.outputs.api }}
+      admin-changed: ${{ steps.changes.outputs.admin }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -E '^api-server/'; then
+            echo "api=true" >> $GITHUB_OUTPUT
+          else
+            echo "api=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff --name-only HEAD~1 HEAD | grep -E '^admin-dashboard/'; then
+            echo "admin=true" >> $GITHUB_OUTPUT
+          else
+            echo "admin=false" >> $GITHUB_OUTPUT
+          fi
+
   build-and-push:
+    needs: detect-changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,6 +58,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata for API Server
+        if: needs.detect-changes.outputs.api-changed == 'true' || github.event_name == 'workflow_dispatch'
         id: meta-api
         uses: docker/metadata-action@v5
         with:
@@ -41,6 +69,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push API Server
+        if: needs.detect-changes.outputs.api-changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: ./api-server
@@ -48,10 +77,11 @@ jobs:
           push: true
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=api-server
+          cache-to: type=gha,mode=max,scope=api-server
 
       - name: Extract metadata for Admin Dashboard
+        if: needs.detect-changes.outputs.admin-changed == 'true' || github.event_name == 'workflow_dispatch'
         id: meta-admin
         uses: docker/metadata-action@v5
         with:
@@ -62,6 +92,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Admin Dashboard
+        if: needs.detect-changes.outputs.admin-changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: ./admin-dashboard
@@ -70,13 +101,13 @@ jobs:
           push: true
           tags: ${{ steps.meta-admin.outputs.tags }}
           labels: ${{ steps.meta-admin.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=admin-dashboard
+          cache-to: type=gha,mode=max,scope=admin-dashboard
 
   deploy:
-    needs: build-and-push
+    needs: [detect-changes, build-and-push]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (needs.detect-changes.outputs.api-changed == 'true' || needs.detect-changes.outputs.admin-changed == 'true' || github.event_name == 'workflow_dispatch')
 
     steps:
       - name: Checkout code
@@ -111,10 +142,16 @@ jobs:
             echo "🐳 Logging in to GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 최신 이미지 Pull 및 배포
-            echo "⬇️ Pulling latest images..."
-            docker pull ghcr.io/${{ github.repository }}/api-server:latest
-            docker pull ghcr.io/${{ github.repository }}/admin-dashboard:latest
+            # 변경된 서비스만 이미지 Pull
+            if [ "${{ needs.detect-changes.outputs.api-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "⬇️ Pulling API Server image..."
+              docker pull ghcr.io/${{ github.repository }}/api-server:latest
+            fi
+            
+            if [ "${{ needs.detect-changes.outputs.admin-changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "⬇️ Pulling Admin Dashboard image..."
+              docker pull ghcr.io/${{ github.repository }}/admin-dashboard:latest
+            fi
             
             echo "🚀 Deploying services..."
             source /tmp/prod-env && docker-compose -f docker-compose.prod.yml down --remove-orphans
