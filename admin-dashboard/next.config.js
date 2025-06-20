@@ -3,11 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   // 프로덕션 빌드를 위한 standalone 출력
   output: 'standalone',
-  // GitHub Actions 환경에서 빌드 최적화
-  generateBuildId: async () => {
-    // 빌드 ID를 간단하게 하여 메모리 사용량 줄이기
-    return 'build'
+  
+  // 런타임 환경변수 설정 (빌드 시점이 아닌 런타임에 결정)
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    API_URL: process.env.API_URL,
   },
+  
   // API 서버로 요청을 프록시
   async rewrites() {
     return [
@@ -17,22 +19,50 @@ const nextConfig = {
       },
     ]
   },
-  // 서버 설정 개선
-  experimental: {
-    // 프록시 타임아웃 증가 (파일 업로드를 위해)
-    proxyTimeout: 300000, // 5분
-    // 빌드 워커 수 제한 (메모리 사용량 줄이기)
-    cpus: 1,
-    // 빌드 최적화 (GitHub Actions용)
-    workerThreads: false,
-    esmExternals: false,
+  // webpack 설정 최적화
+  webpack: (config, { isServer, dev }) => {
+    // 개발 환경에서는 기본 설정 사용
+    if (dev) return config;
+    
+    // 프로덕션 빌드에서만 최적화 적용
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+      };
+    }
+    
+    // 빌드 최적화
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          default: {
+            minChunks: 1,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: -10,
+            chunks: 'all',
+          },
+        },
+      },
+    };
+    
+    return config;
   },
+  
   // 빌드 시 정적 생성 타임아웃 증가
-  staticPageGenerationTimeout: 600, // 10분으로 증가
+  staticPageGenerationTimeout: 300, // 5분으로 감소
   // 빌드 최적화
   swcMinify: true,
-  // 메모리 사용량 최적화
-  compress: false, // 빌드 시 압축 비활성화로 메모리 절약
   // 정적 생성 비활성화 (모든 페이지를 SSR로)
   trailingSlash: false,
   // 빌드 시 타입 체크 건너뛰기 (속도 향상)
@@ -50,10 +80,6 @@ const nextConfig = {
   publicRuntimeConfig: {
     // 클라이언트와 서버 양쪽에서 사용 가능
     apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
-  },
-  // HTTP 에이전트 설정 추가
-  env: {
-    CUSTOM_KEY: 'value',
   },
 }
 
