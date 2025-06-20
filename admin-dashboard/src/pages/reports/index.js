@@ -232,15 +232,54 @@ export default function ReportsPage() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          보고서 관리
-        </Typography>
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      {/* 헤더 섹션 */}
+      <Box 
+        sx={{ 
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 4,
+          mb: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center'
+        }}
+      >
+        <Box>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 1
+            }}
+          >
+            보고서 관리
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            AI 분석 보고서를 생성하고 관리합니다
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
+          sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+            px: 3,
+            py: 1.5,
+            '&:hover': {
+              background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+              boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+            }
+          }}
         >
           새 보고서
         </Button>
@@ -252,13 +291,28 @@ export default function ReportsPage() {
         </Alert>
       )}
 
-      <Box sx={{ mb: 2 }}>
+      {/* 필터 섹션 */}
+      <Box 
+        sx={{ 
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 3,
+          mb: 3,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>상태 필터</InputLabel>
           <Select
             value={statusFilter}
             label="상태 필터"
             onChange={(e) => setStatusFilter(e.target.value)}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              }
+            }}
           >
             <MenuItem value="">전체</MenuItem>
             <MenuItem value="draft">초안</MenuItem>
@@ -269,17 +323,29 @@ export default function ReportsPage() {
         </FormControl>
       </Box>
 
-      <TableContainer component={Paper}>
+      {/* 테이블 섹션 */}
+      <TableContainer 
+        component={Paper}
+        elevation={0}
+        sx={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden'
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>제목</TableCell>
-              <TableCell>부모</TableCell>
-              <TableCell>아이</TableCell>
-              <TableCell>상태</TableCell>
-              <TableCell>생성일</TableCell>
-              <TableCell width="50"></TableCell>
+            <TableRow sx={{ backgroundColor: 'rgba(102, 126, 234, 0.05)' }}>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>ID</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>제목</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>부모</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>아이</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>상태</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>생성일</TableCell>
+              <TableCell width="50" sx={{ fontWeight: 600, color: 'text.primary' }}></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -289,8 +355,14 @@ export default function ReportsPage() {
                 onClick={() => handleRowClick(report.id)}
                 sx={{ 
                   cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                    transform: 'scale(1.01)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
                   }
                 }}
               >
@@ -331,9 +403,33 @@ export default function ReportsPage() {
       </Box>
 
       {/* 생성 다이얼로그 */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)}>
-        <DialogTitle>새 보고서 생성</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={createDialogOpen} 
+        onClose={() => setCreateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            fontWeight: 600,
+            textAlign: 'center',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          새 보고서 생성
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 2 }}>
           <TextField
             fullWidth
             label="보고서 제목"
@@ -341,6 +437,12 @@ export default function ReportsPage() {
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             margin="normal"
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -348,6 +450,12 @@ export default function ReportsPage() {
             value={formData.parent_name}
             onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
             margin="normal"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -355,11 +463,42 @@ export default function ReportsPage() {
             value={formData.child_name}
             onChange={(e) => setFormData({ ...formData, child_name: e.target.value })}
             margin="normal"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>취소</Button>
-          <Button onClick={handleCreateReport} variant="contained">
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={() => setCreateDialogOpen(false)}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              }
+            }}
+          >
+            취소
+          </Button>
+          <Button 
+            onClick={handleCreateReport} 
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+              }
+            }}
+          >
             생성
           </Button>
         </DialogActions>

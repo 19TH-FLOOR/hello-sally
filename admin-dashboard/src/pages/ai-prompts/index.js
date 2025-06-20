@@ -216,17 +216,56 @@ export default function TemplatesPage() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          보고서 AI 프롬프트 관리
-        </Typography>
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      {/* 헤더 섹션 */}
+      <Box 
+        sx={{ 
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 4,
+          mb: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center'
+        }}
+      >
+        <Box>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 1
+            }}
+          >
+            AI 프롬프트 관리
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            AI 분석을 위한 프롬프트를 생성하고 관리합니다
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => {
             setFormData({ name: '', description: '', prompt_content: '', is_default: false });
             setCreateDialogOpen(true);
+          }}
+          sx={{ 
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            boxShadow: '0 4px 20px rgba(240, 147, 251, 0.3)',
+            px: 3,
+            py: 1.5,
+            '&:hover': {
+              background: 'linear-gradient(135deg, #e879f9 0%, #ef4444 100%)',
+              boxShadow: '0 6px 24px rgba(240, 147, 251, 0.4)',
+            }
           }}
         >
           새 프롬프트
@@ -239,21 +278,46 @@ export default function TemplatesPage() {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      {/* 테이블 섹션 */}
+      <TableContainer 
+        component={Paper}
+        elevation={0}
+        sx={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          overflow: 'hidden'
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>프롬프트명</TableCell>
-              <TableCell>설명</TableCell>
-              <TableCell>기본 프롬프트</TableCell>
-              <TableCell>생성일</TableCell>
-              <TableCell>작업</TableCell>
+            <TableRow sx={{ backgroundColor: 'rgba(240, 147, 251, 0.05)' }}>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>ID</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>프롬프트명</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>설명</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>기본 프롬프트</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>생성일</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>작업</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {templates.map((template) => (
-              <TableRow key={template.id}>
+              <TableRow 
+                key={template.id}
+                sx={{ 
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    backgroundColor: 'rgba(240, 147, 251, 0.08)',
+                    transform: 'scale(1.01)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                  }
+                }}
+              >
                 <TableCell>{template.id}</TableCell>
                 <TableCell>{template.name}</TableCell>
                 <TableCell>
@@ -318,12 +382,36 @@ export default function TemplatesPage() {
       </Box>
 
       {/* 생성 다이얼로그 */}
-      <Dialog open={createDialogOpen} onClose={() => {
-        setCreateDialogOpen(false);
-        setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-      }} maxWidth="md" fullWidth>
-        <DialogTitle>새 프롬프트 생성</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={createDialogOpen} 
+        onClose={() => {
+          setCreateDialogOpen(false);
+          setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+        }} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            fontWeight: 600,
+            textAlign: 'center',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          새 프롬프트 생성
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 2 }}>
           <TextField
             fullWidth
             label="프롬프트명"
@@ -331,6 +419,12 @@ export default function TemplatesPage() {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             margin="normal"
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -340,6 +434,12 @@ export default function TemplatesPage() {
             margin="normal"
             multiline
             rows={2}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -351,37 +451,100 @@ export default function TemplatesPage() {
             rows={10}
             required
             placeholder="AI 분석을 위한 프롬프트를 입력하세요..."
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <FormControlLabel
             control={
               <Switch
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#f093fb',
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: '#f093fb',
+                  },
+                }}
               />
             }
             label="기본 프롬프트로 설정"
-            sx={{ mt: 1 }}
+            sx={{ mt: 2 }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setCreateDialogOpen(false);
-            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-          }}>취소</Button>
-          <Button onClick={handleCreateTemplate} variant="contained">
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={() => {
+              setCreateDialogOpen(false);
+              setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+            }}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              }
+            }}
+          >
+            취소
+          </Button>
+          <Button 
+            onClick={handleCreateTemplate} 
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              boxShadow: '0 4px 20px rgba(240, 147, 251, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #e879f9 0%, #ef4444 100%)',
+                boxShadow: '0 6px 24px rgba(240, 147, 251, 0.4)',
+              }
+            }}
+          >
             생성
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* 수정 다이얼로그 */}
-      <Dialog open={editDialogOpen} onClose={() => {
-        setEditDialogOpen(false);
-        setSelectedTemplate(null);
-        setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-      }} maxWidth="md" fullWidth>
-        <DialogTitle>프롬프트 수정</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedTemplate(null);
+          setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+        }} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: 'white',
+            fontWeight: 600,
+            textAlign: 'center',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          프롬프트 수정
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 2 }}>
           <TextField
             fullWidth
             label="프롬프트명"
@@ -389,6 +552,12 @@ export default function TemplatesPage() {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             margin="normal"
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -398,6 +567,12 @@ export default function TemplatesPage() {
             margin="normal"
             multiline
             rows={2}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -408,73 +583,141 @@ export default function TemplatesPage() {
             multiline
             rows={10}
             required
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                background: 'rgba(255, 255, 255, 0.8)',
+              }
+            }}
           />
           <FormControlLabel
             control={
               <Switch
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': {
+                    color: '#f093fb',
+                  },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: '#f093fb',
+                  },
+                }}
               />
             }
             label="기본 프롬프트로 설정"
-            sx={{ mt: 1 }}
+            sx={{ mt: 2 }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setEditDialogOpen(false);
-            setSelectedTemplate(null);
-            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-          }}>취소</Button>
-          <Button onClick={handleUpdateTemplate} variant="contained">
-            수정
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={() => {
+              setEditDialogOpen(false);
+              setSelectedTemplate(null);
+              setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+            }}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              }
+            }}
+          >
+            취소
+          </Button>
+          <Button 
+            onClick={handleUpdateTemplate} 
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              boxShadow: '0 4px 20px rgba(240, 147, 251, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #e879f9 0%, #ef4444 100%)',
+                boxShadow: '0 6px 24px rgba(240, 147, 251, 0.4)',
+              }
+            }}
+          >
+            저장
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* 보기 다이얼로그 */}
-      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>프롬프트 상세보기</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={viewDialogOpen} 
+        onClose={() => setViewDialogOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            fontWeight: 600,
+            textAlign: 'center',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          프롬프트 상세보기
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 2 }}>
           {selectedTemplate && (
             <Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                   템플릿명
                 </Typography>
-                <Typography variant="body1">{selectedTemplate.name}</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {selectedTemplate.name}
+                </Typography>
               </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                   설명
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {selectedTemplate.description || '설명 없음'}
                 </Typography>
               </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                   기본 템플릿 여부
                 </Typography>
                 <Chip
                   label={selectedTemplate.is_default ? '기본 템플릿' : '사용자 정의'}
                   color={selectedTemplate.is_default ? 'primary' : 'default'}
                   size="small"
+                  sx={{ fontWeight: 500 }}
                 />
               </Box>
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
                   프롬프트 내용
                 </Typography>
                 <Box
                   sx={{
-                    p: 2,
-                    bgcolor: '#f5f5f5',
-                    borderRadius: 1,
+                    p: 3,
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    borderRadius: 2,
                     fontFamily: 'monospace',
                     whiteSpace: 'pre-wrap',
                     maxHeight: '300px',
-                    overflow: 'auto'
+                    overflow: 'auto',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
                   }}
                 >
                   {selectedTemplate.prompt_content}
@@ -483,8 +726,21 @@ export default function TemplatesPage() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>닫기</Button>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => setViewDialogOpen(false)}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+              }
+            }}
+          >
+            닫기
+          </Button>
         </DialogActions>
       </Dialog>
       
