@@ -77,6 +77,7 @@ export default function ReportDetailPage() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadDisplayName, setUploadDisplayName] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   
   // STT 관련 상태
   const [sttTranscript, setSttTranscript] = useState('');
@@ -115,6 +116,11 @@ export default function ReportDetailPage() {
   // 케밥 메뉴 상태
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedFileForMenu, setSelectedFileForMenu] = useState(null);
+
+  // STT 폴링 상태
+  const [pollingIntervalId, setPollingIntervalId] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [notifiedFiles, setNotifiedFiles] = useState(new Set()); // 이미 알림을 보낸 파일들
 
   // 화자 라벨링 미리보기 업데이트 함수
   const updateSpeakerPreview = useCallback((labels, names) => {
@@ -172,12 +178,136 @@ export default function ReportDetailPage() {
     }
   }, [speakerNames, speakerLabels, updateSpeakerPreview]);
 
+  // STT 상태 폴링 함수
+  const startSTTPolling = useCallback(() => {
+    if (isPolling || pollingIntervalId) return;
+    
+    setIsPolling(true);
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/reports/${id}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const audioFiles = data.audio_files || [];
+        
+        // 상태 업데이트와 알림 처리
+        setReport(prevReport => {
+          const prevAudioFiles = prevReport?.audio_files || [];
+          
+          // 이전 상태와 비교하여 새로 완료된 STT 찾기 (중복 알림 방지)
+          const newlyCompletedFiles = audioFiles.filter(file => {
+            const prevFile = prevAudioFiles.find(pf => pf.id === file.id);
+            return prevFile && 
+                   (prevFile.stt_status === 'processing' || prevFile.stt_status === 'pending') && 
+                   file.stt_status === 'completed' &&
+                   !notifiedFiles.has(`${file.id}-completed`); // 이미 알림을 보낸 파일은 제외
+          });
+          
+          const newlyFailedFiles = audioFiles.filter(file => {
+            const prevFile = prevAudioFiles.find(pf => pf.id === file.id);
+            return prevFile && 
+                   (prevFile.stt_status === 'processing' || prevFile.stt_status === 'pending') && 
+                   file.stt_status === 'failed' &&
+                   !notifiedFiles.has(`${file.id}-failed`); // 이미 알림을 보낸 파일은 제외
+          });
+          
+          // 새로 완료된 파일에 대한 알림
+          if (newlyCompletedFiles.length > 0) {
+            newlyCompletedFiles.forEach(file => {
+              toast.success(`"${file.display_name || file.filename}" STT 처리가 완료되었습니다.`);
+            });
+            
+            // 알림을 보낸 파일들을 기록
+            setNotifiedFiles(prev => {
+              const newSet = new Set(prev);
+              newlyCompletedFiles.forEach(file => newSet.add(`${file.id}-completed`));
+              return newSet;
+            });
+          }
+          
+          // 새로 실패한 파일에 대한 알림
+          if (newlyFailedFiles.length > 0) {
+            newlyFailedFiles.forEach(file => {
+              toast.error(`"${file.display_name || file.filename}" STT 처리가 실패했습니다.`);
+            });
+            
+            // 알림을 보낸 파일들을 기록
+            setNotifiedFiles(prev => {
+              const newSet = new Set(prev);
+              newlyFailedFiles.forEach(file => newSet.add(`${file.id}-failed`));
+              return newSet;
+            });
+          }
+          
+          return {
+            ...prevReport,
+            audio_files: audioFiles
+          };
+        });
+        
+        // STT가 진행 중인 파일이 있는지 확인
+        const hasProcessingSTT = audioFiles.some(file => 
+          file.stt_status === 'processing' || file.stt_status === 'pending'
+        );
+        
+        // 진행 중인 STT가 없으면 폴링 중단
+        if (!hasProcessingSTT) {
+          stopSTTPolling();
+        }
+        
+      } catch (error) {
+        console.error('STT 상태 폴링 오류:', error);
+      }
+    }, 3000); // 3초마다 폴링
+    
+    setPollingIntervalId(intervalId);
+  }, [id, isPolling, pollingIntervalId]);
+
+  // STT 폴링 중단 함수
+  const stopSTTPolling = useCallback(() => {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+      setPollingIntervalId(null);
+    }
+    setIsPolling(false);
+    // 폴링 중단 시 알림 기록 초기화 (새로운 STT 시작 시 다시 알림받기 위해)
+    setNotifiedFiles(new Set());
+  }, [pollingIntervalId]);
+
+  // STT 상태 확인 및 폴링 시작/중단 결정
+  const checkAndManageSTTPolling = useCallback(() => {
+    if (!report?.audio_files) return;
+    
+    const hasProcessingSTT = report.audio_files.some(file => 
+      file.stt_status === 'processing' || file.stt_status === 'pending'
+    );
+    
+    if (hasProcessingSTT && !isPolling) {
+      startSTTPolling();
+    } else if (!hasProcessingSTT && isPolling) {
+      stopSTTPolling();
+    }
+  }, [report?.audio_files, isPolling, startSTTPolling, stopSTTPolling]);
+
   useEffect(() => {
     if (id) {
       fetchReportDetail();
       fetchAnalysisStatus();
     }
   }, [id]);
+
+  // 보고서 데이터가 변경될 때마다 STT 폴링 상태 확인
+  useEffect(() => {
+    checkAndManageSTTPolling();
+  }, [checkAndManageSTTPolling]);
+
+  // 컴포넌트 언마운트 시 폴링 정리
+  useEffect(() => {
+    return () => {
+      stopSTTPolling();
+    };
+  }, [stopSTTPolling]);
 
   const fetchReportDetail = async () => {
     try {
@@ -334,6 +464,54 @@ export default function ReportDetailPage() {
     }
   };
 
+  // 드래그 앤 드롭 핸들러
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragIn = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragOut = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      const file = files[0];
+      // 오디오 파일인지 확인
+      if (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|m4a|aac|ogg|flac)$/i)) {
+        setUploadFile(file);
+        if (!uploadDisplayName) {
+          setUploadDisplayName(file.name);
+        }
+      } else {
+        toast.error('오디오 파일만 업로드 가능합니다.');
+      }
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadFile(file);
+      if (!uploadDisplayName) {
+        setUploadDisplayName(file.name);
+      }
+    }
+  };
+
   const handleFileUpload = async () => {
     if (!uploadFile) return;
     
@@ -358,6 +536,7 @@ export default function ReportDetailPage() {
       setUploadDialogOpen(false);
       setUploadFile(null);
       setUploadDisplayName('');
+      setDragActive(false);
       fetchReportDetail();
       toast.success('파일이 성공적으로 업로드되었습니다.');
     } catch (err) {
@@ -375,8 +554,10 @@ export default function ReportDetailPage() {
       
       if (!response.ok) throw new Error('STT 처리를 시작할 수 없습니다.');
       
-      toast.success('STT 처리가 시작되었습니다. 잠시 후 결과를 확인해주세요.');
-      fetchReportDetail();
+      toast.success('STT 처리가 시작되었습니다. 자동으로 상태를 확인합니다.');
+      await fetchReportDetail();
+      // STT 시작 후 폴링 시작
+      startSTTPolling();
     } catch (err) {
       toast.error(err.message);
     }
@@ -565,8 +746,10 @@ export default function ReportDetailPage() {
       if (!response.ok) throw new Error('STT 재시작에 실패했습니다.');
       
       setSttConfigDialogOpen(false);
-      toast.success('STT 처리가 새로운 설정으로 재시작되었습니다.');
-      fetchReportDetail();
+      toast.success('STT 처리가 새로운 설정으로 재시작되었습니다. 자동으로 상태를 확인합니다.');
+      await fetchReportDetail();
+      // STT 재시작 후 폴링 시작
+      startSTTPolling();
     } catch (err) {
       toast.error(err.message);
     }
@@ -780,6 +963,17 @@ export default function ReportDetailPage() {
         <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
           {report.title}
         </Typography>
+        
+        {/* STT 폴링 상태 표시 */}
+        {isPolling && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2, px: 2, py: 1, backgroundColor: '#e3f2fd', borderRadius: 1 }}>
+            <CircularProgress size={16} />
+            <Typography variant="body2" color="primary">
+              STT 상태 확인 중...
+            </Typography>
+          </Box>
+        )}
+        
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
@@ -916,11 +1110,16 @@ export default function ReportDetailPage() {
                           }
                           secondary={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                              <Chip
-                                label={`STT: ${getSTTStatusText(file.stt_status)}`}
-                                color={getSTTStatusColor(file.stt_status)}
-                                size="small"
-                              />
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Chip
+                                  label={`STT: ${getSTTStatusText(file.stt_status)}`}
+                                  color={getSTTStatusColor(file.stt_status)}
+                                  size="small"
+                                />
+                                {file.stt_status === 'processing' && (
+                                  <CircularProgress size={16} />
+                                )}
+                              </Box>
                               
                               {/* STT 관련 주요 버튼들 */}
                               <Button
@@ -1078,26 +1277,98 @@ export default function ReportDetailPage() {
       </Menu>
 
       {/* 파일 업로드 다이얼로그 */}
-      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>음성 파일 업로드</DialogTitle>
+      <Dialog open={uploadDialogOpen} onClose={() => {
+        setUploadDialogOpen(false);
+        setUploadFile(null);
+        setUploadDisplayName('');
+        setDragActive(false);
+      }} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <UploadIcon color="primary" />
+            음성 파일 업로드
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              업로드할 음성 파일을 선택하세요.
-            </Typography>
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={(e) => {
-                setUploadFile(e.target.files[0]);
-                // 파일이 선택되면 기본값으로 파일명 설정
-                if (e.target.files[0] && !uploadDisplayName) {
-                  setUploadDisplayName(e.target.files[0].name);
+            {/* 드래그 앤 드롭 영역 */}
+            <Box
+              onDragEnter={handleDragIn}
+              onDragLeave={handleDragOut}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              sx={{
+                border: `2px dashed ${dragActive ? '#1976d2' : uploadFile ? '#4caf50' : '#e0e0e0'}`,
+                borderRadius: 2,
+                p: 4,
+                textAlign: 'center',
+                bgcolor: dragActive ? '#e3f2fd' : uploadFile ? '#e8f5e8' : '#fafafa',
+                transition: 'all 0.2s ease-in-out',
+                cursor: 'pointer',
+                mb: 3,
+                '&:hover': {
+                  borderColor: '#1976d2',
+                  bgcolor: '#f5f5f5'
                 }
               }}
-              style={{ marginTop: '16px', marginBottom: '16px' }}
-            />
+              onClick={() => document.getElementById('file-input').click()}
+            >
+              <input
+                id="file-input"
+                type="file"
+                accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              
+              <UploadIcon 
+                sx={{ 
+                  fontSize: 48, 
+                  color: dragActive ? '#1976d2' : uploadFile ? '#4caf50' : '#bdbdbd',
+                  mb: 2
+                }} 
+              />
+              
+              {uploadFile ? (
+                <Box>
+                  <Typography variant="h6" color="success.main" gutterBottom>
+                    ✓ 파일 선택됨
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
+                    {uploadFile.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    크기: {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    sx={{ mt: 2 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUploadFile(null);
+                      setUploadDisplayName('');
+                    }}
+                  >
+                    다른 파일 선택
+                  </Button>
+                </Box>
+              ) : (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {dragActive ? '파일을 여기에 놓으세요' : '파일을 드래그하거나 클릭하여 선택'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    지원 형식: MP3, WAV, M4A, AAC, OGG, FLAC
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    최대 파일 크기: 100MB
+                  </Typography>
+                </Box>
+              )}
+            </Box>
             
+            {/* 파일명 입력 */}
             <TextField
               fullWidth
               label="파일명 (선택사항)"
@@ -1106,21 +1377,42 @@ export default function ReportDetailPage() {
               placeholder="파일명을 입력하세요. 비워두면 원본 파일명이 사용됩니다."
               helperText="사용자가 보기 편한 이름으로 설정할 수 있습니다."
               margin="normal"
+              disabled={!uploadFile}
             />
+            
+            {/* 업로드 진행 상태 */}
+            {uploading && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" color="primary">
+                    업로드 중...
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  잠시만 기다려주세요. 파일을 서버에 업로드하고 있습니다.
+                </Typography>
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setUploadDialogOpen(false);
-            setUploadFile(null);
-            setUploadDisplayName('');
-          }}>
+          <Button 
+            onClick={() => {
+              setUploadDialogOpen(false);
+              setUploadFile(null);
+              setUploadDisplayName('');
+              setDragActive(false);
+            }}
+            disabled={uploading}
+          >
             취소
           </Button>
           <Button 
             onClick={handleFileUpload} 
             variant="contained"
             disabled={!uploadFile || uploading}
+            startIcon={uploading ? <CircularProgress size={20} /> : <UploadIcon />}
           >
             {uploading ? '업로드 중...' : '업로드'}
           </Button>
@@ -1263,7 +1555,17 @@ export default function ReportDetailPage() {
       {/* STT 설정 다이얼로그 */}
       <Dialog open={sttConfigDialogOpen} onClose={() => setSttConfigDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
-          STT 설정 - {selectedAudioFile?.filename}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>STT 설정 - {selectedAudioFile?.filename}</span>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => window.open('https://developers.rtzr.ai/docs/stt-file/', '_blank')}
+              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+            >
+              📖 API 문서 보기
+            </Button>
+          </Box>
         </DialogTitle>
         <DialogContent>
           {sttLoading ? (

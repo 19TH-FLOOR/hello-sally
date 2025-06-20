@@ -22,8 +22,13 @@ RUN mkdir -p /app/public
 ENV API_URL=http://api-server:8000
 ENV NODE_ENV=production
 
-# Next.js 빌드
-RUN npm run build
+# Node.js 메모리 제한 증가 및 빌드 최적화 (GitHub Actions용)
+ENV NODE_OPTIONS="--max-old-space-size=8192 --max-semi-space-size=512"
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
+
+# Next.js 빌드 (GitHub Actions 환경 최적화)
+RUN npm run build:ci
 
 # 프로덕션 이미지
 FROM node:18-alpine AS runner

@@ -224,7 +224,10 @@ export default function TemplatesPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
+          onClick={() => {
+            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+            setCreateDialogOpen(true);
+          }}
         >
           새 프롬프트
         </Button>
@@ -315,7 +318,10 @@ export default function TemplatesPage() {
       </Box>
 
       {/* 생성 다이얼로그 */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={createDialogOpen} onClose={() => {
+        setCreateDialogOpen(false);
+        setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+      }} maxWidth="md" fullWidth>
         <DialogTitle>새 프롬프트 생성</DialogTitle>
         <DialogContent>
           <TextField
@@ -358,7 +364,10 @@ export default function TemplatesPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>취소</Button>
+          <Button onClick={() => {
+            setCreateDialogOpen(false);
+            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+          }}>취소</Button>
           <Button onClick={handleCreateTemplate} variant="contained">
             생성
           </Button>
@@ -366,7 +375,11 @@ export default function TemplatesPage() {
       </Dialog>
 
       {/* 수정 다이얼로그 */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={editDialogOpen} onClose={() => {
+        setEditDialogOpen(false);
+        setSelectedTemplate(null);
+        setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+      }} maxWidth="md" fullWidth>
         <DialogTitle>프롬프트 수정</DialogTitle>
         <DialogContent>
           <TextField
@@ -408,7 +421,11 @@ export default function TemplatesPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>취소</Button>
+          <Button onClick={() => {
+            setEditDialogOpen(false);
+            setSelectedTemplate(null);
+            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
+          }}>취소</Button>
           <Button onClick={handleUpdateTemplate} variant="contained">
             수정
           </Button>

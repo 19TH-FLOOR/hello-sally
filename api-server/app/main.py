@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.routers import auth, audio_files, reports, templates
+from app.routers import auth, audio_files, reports, ai_prompts_for_report
 from app.db.models import Base
 from app.db.session import engine
 
@@ -70,7 +70,7 @@ app.include_router(
     tags=["Reports"]
 )
 app.include_router(
-    templates.router,
+    ai_prompts_for_report.router,
     prefix="/ai-prompts-for-report",
     tags=["AI Prompts for Report"]
 )

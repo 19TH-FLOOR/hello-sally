@@ -5,9 +5,9 @@ from datetime import datetime
 
 from app.db.session import get_db
 from app.db.models import AIPromptForReport
-from app.schemas.templates import (
-    AIPromptForReportCreate, AIPromptForReportUpdate, AIPromptForReportResponse,
-    AIPromptForReportListResponse
+from app.schemas.ai_prompts_for_report import (
+    AIPromptForReportCreate, AIPromptForReportUpdate, 
+    AIPromptForReportResponse, AIPromptForReportListResponse
 )
 
 router = APIRouter()
@@ -23,7 +23,7 @@ def create_template(
     # 기본 템플릿으로 설정하는 경우, 기존 기본 템플릿 해제
     if template_data.is_default:
         db.query(AIPromptForReport).filter(
-            AIPromptForReport.is_default == True
+            AIPromptForReport.is_default.is_(True)
         ).update({"is_default": False})
     
     template = AIPromptForReport(**template_data.dict())
@@ -98,7 +98,7 @@ def update_template(
     # 기본 템플릿으로 설정하는 경우, 기존 기본 템플릿 해제
     if update_data.get("is_default"):
         db.query(AIPromptForReport).filter(
-            AIPromptForReport.is_default == True,
+            AIPromptForReport.is_default.is_(True),
             AIPromptForReport.id != ai_prompt_id
         ).update({"is_default": False})
     
@@ -132,15 +132,16 @@ def delete_template(ai_prompt_id: int, db: Session = Depends(get_db)):
             detail="기본 템플릿은 삭제할 수 없습니다."
         )
     
-    # 사용 중인 템플릿인지 확인
-    report_data_count = db.query(AIPromptForReport).filter(
-        AIPromptForReport.id == ai_prompt_id
+    # 이 프롬프트를 사용하는 보고서가 있는지 확인
+    from app.db.models import ReportData
+    report_data_count = db.query(ReportData).filter(
+        ReportData.ai_prompt_id == ai_prompt_id
     ).count()
     
     if report_data_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="사용 중인 템플릿은 삭제할 수 없습니다."
+            detail="사용 중인 프롬프트는 삭제할 수 없습니다."
         )
     
     db.delete(template)
@@ -153,7 +154,7 @@ def delete_template(ai_prompt_id: int, db: Session = Depends(get_db)):
 def get_default_template(db: Session = Depends(get_db)):
     """기본 템플릿 조회"""
     template = db.query(AIPromptForReport).filter(
-        AIPromptForReport.is_default == True
+        AIPromptForReport.is_default.is_(True)
     ).first()
     
     if not template:
