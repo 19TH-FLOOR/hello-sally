@@ -30,6 +30,9 @@ declare -A PARAMS=(
     ["AWS_REGION"]="ap-northeast-2"
     ["AWS_S3_BUCKET_NAME"]="hello-sally"
     
+    # OPENAI API 키
+    ["OPENAI_API_KEY"]="your_openai_api_key_here"
+    
     # 서버 설정
     ["EC2_IP"]="your-ec2-ip"                # EC2 공용 IP (실제 IP로 변경 필요)
     ["API_SERVER_PORT"]="8000"              # API 서버 포트

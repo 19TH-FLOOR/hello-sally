@@ -219,11 +219,11 @@ class ReturnZeroSTTService:
         config: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        음성 파일을 텍스트로 변환 (일반 STT)
+        음성 파일을 텍스트로 변환 (리턴제로 RTZR STT API)
         
         Args:
             file_url: S3에 업로드된 음성 파일 URL
-            config: STT 설정 (모델명, 옵션 등)
+            config: STT 설정 (모델명, 화자 분리, 필터 등)
         
         Returns:
             STT 결과 딕셔너리
@@ -239,16 +239,63 @@ class ReturnZeroSTTService:
                 file_url
             )
             
-            # 기본 설정
+            # 리턴제로 API 기본 설정
             default_config = {
-                "model_name": "sommers",  # 기본 모델
-                "use_itn": True,  # 숫자/날짜 정규화
-                "use_disfluency_filter": True,  # 간투사 제거
-                "use_profanity_filter": False,  # 욕설 필터링 (필요시 True)
+                "model_name": "sommers",  # sommers, whisper
+                "language": "ko",
+                "use_itn": True,  # 영어/숫자/단위 변환
+                "use_disfluency_filter": True,  # 간투어 필터
+                "use_profanity_filter": False,  # 비속어 필터
+                "use_paragraph_splitter": True,  # 문단 나누기
+                "paragraph_splitter": {"max": 50},  # 문단 최대 길이
+                "domain": "GENERAL",  # 도메인 설정
+                "use_word_timestamp": False,  # 단어별 Timestamp
+                "use_diarization": False,  # 화자 분리
             }
             
+            # 사용자 설정 적용
             if config:
-                default_config.update(config)
+                # 모델 설정
+                if config.get("model_type"):
+                    default_config["model_name"] = config["model_type"]
+                
+                # 언어 설정 (Whisper 모델일 때만)
+                if config.get("model_type") == "whisper":
+                    if config.get("language"):
+                        default_config["language"] = config["language"]
+                    
+                    # 언어 감지 후보군 설정 (detect 또는 multi일 때만)
+                    if config.get("language") in ["detect", "multi"] and config.get("language_candidates"):
+                        default_config["language_candidates"] = config["language_candidates"]
+                
+                # 간투어 필터 설정
+                if config.get("use_disfluency_filter") is not None:
+                    default_config["use_disfluency_filter"] = config["use_disfluency_filter"]
+                
+                # 욕설 필터 설정
+                if config.get("profanity_filter") is not None:
+                    default_config["use_profanity_filter"] = config["profanity_filter"]
+                
+                # 문단 나누기 설정
+                if config.get("use_paragraph_splitter") is not None:
+                    default_config["use_paragraph_splitter"] = config["use_paragraph_splitter"]
+                    if config.get("paragraph_max_length"):
+                        default_config["paragraph_splitter"]["max"] = config["paragraph_max_length"]
+                
+                # 도메인 설정
+                if config.get("domain"):
+                    default_config["domain"] = config["domain"]
+                
+                # 키워드 부스팅 설정
+                if config.get("keywords"):
+                    default_config["keywords"] = config["keywords"]
+                
+                # 화자 분리 설정 (리턴제로 API 스펙에 맞춤)
+                if config.get("speaker_diarization"):
+                    default_config["use_diarization"] = True
+                    default_config["diarization"] = {
+                        "spk_count": config.get("spk_count", 2)  # 화자 수 설정
+                    }
             
             logger.info(f"STT 설정: {default_config}")
             
@@ -310,7 +357,9 @@ class ReturnZeroSTTService:
                 logger.info(f"STT 작업 시작됨. Task ID: {task_id}")
                 
                 # 2단계: 결과 폴링
-                return self._poll_transcription_result(task_id, access_token)
+                stt_result = self._poll_transcription_result(task_id, access_token)
+                
+                return stt_result
                 
         except requests.RequestException as e:
             logger.error(f"STT 요청 실패: {e}")
@@ -367,9 +416,15 @@ class ReturnZeroSTTService:
                 if status == "completed":
                     logger.info(f"STT 작업 완료. Task ID: {task_id}")
                     logger.debug(f"완료된 결과: {result}")
+                    
+                    # 텍스트 추출 (화자 정보 포함)
+                    extracted_data = self._extract_transcript(result)
+                    
                     return {
                         "status": "completed",
-                        "transcript": self._extract_transcript(result),
+                        "transcript": extracted_data["transcript"],
+                        "speaker_labels": extracted_data["speaker_labels"],
+                        "speaker_names": extracted_data["speaker_names"],
                         "full_result": result
                     }
                 elif status == "failed":
@@ -405,33 +460,70 @@ class ReturnZeroSTTService:
         logger.error("STT 작업 시간 초과 (5분)")
         raise Exception("STT 작업 시간 초과 (5분)")
     
-    def _extract_transcript(self, result: Dict[str, Any]) -> str:
-        """STT 결과에서 텍스트 추출"""
+    def _extract_transcript(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """STT 결과에서 텍스트 추출 (리턴제로 응답 형식)"""
         try:
+            # 리턴제로 응답 구조 확인
             utterances = result.get("results", {}).get("utterances", [])
             if not utterances:
                 logger.warning("STT 결과에 발화 내용이 없음")
-                return ""
+                return {
+                    "transcript": "",
+                    "speaker_labels": None,
+                    "speaker_names": None
+                }
             
-            # 모든 발화를 시간 순으로 정렬하여 하나의 텍스트로 합치기
+            # 화자 분리 결과 처리
             transcript_parts = []
+            speaker_labels = []
+            speaker_names = {}
+            
             for utterance in utterances:
-                msg = utterance.get("msg", "").strip()
-                if msg:
-                    transcript_parts.append(msg)
+                # 화자 정보 추출 (리턴제로 API 스펙에 맞춤)
+                speaker = utterance.get("spk", "")  # spk 필드 사용
+                text = utterance.get("msg", "")  # msg 필드 사용
+                start_time = utterance.get("start_at", 0)
+                end_time = utterance.get("start_at", 0) + utterance.get("duration", 0)
+                
+                if text:
+                    # 화자 정보가 있으면 "화자: 텍스트" 형태로 포맷팅
+                    if speaker is not None and speaker != "":
+                        transcript_parts.append(f"speaker{speaker}: {text}")
+                        speaker_labels.append({
+                            "speaker": f"speaker{speaker}",
+                            "text": text,
+                            "start_at": start_time,
+                            "end_at": end_time
+                        })
+                        # 화자 이름 매핑 초기화
+                        speaker_key = f"speaker{speaker}"
+                        if speaker_key not in speaker_names:
+                            speaker_names[speaker_key] = f"화자{speaker + 1}"
+                    else:
+                        # 화자 정보가 없으면 텍스트만 추가
+                        transcript_parts.append(text)
             
-            final_transcript = " ".join(transcript_parts)
-            text_length = len(final_transcript)
-            logger.info(f"텍스트 추출 완료: {text_length} 글자")
-            preview_text = final_transcript[:100]
-            logger.debug(f"추출된 텍스트: {preview_text}...")
+            # 결과를 줄바꿈으로 연결
+            transcript = "\n".join(transcript_parts)
             
-            return final_transcript
+            logger.info(f"추출된 텍스트 길이: {len(transcript)} 문자")
+            logger.debug(f"추출된 텍스트: {transcript[:200]}...")
+            logger.info(f"화자 수: {len(speaker_names)}")
+            
+            return {
+                "transcript": transcript,
+                "speaker_labels": speaker_labels if speaker_labels else None,
+                "speaker_names": speaker_names if speaker_names else None
+            }
             
         except Exception as e:
             logger.error(f"텍스트 추출 실패: {e}")
             logger.error(f"결과 구조: {result}")
-            return ""
+            return {
+                "transcript": "",
+                "speaker_labels": None,
+                "speaker_names": None
+            }
 
 
 # 싱글톤 인스턴스

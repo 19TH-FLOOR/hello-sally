@@ -3,12 +3,13 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { 
   AppBar, Toolbar, Typography, Drawer, Box, List, 
-  ListItem, ListItemIcon, ListItemText, IconButton, Container
+  ListItem, ListItemIcon, ListItemText, IconButton, Container,
+  Divider
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import ListIcon from '@mui/icons-material/List';
 import HomeIcon from '@mui/icons-material/Home';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 const drawerWidth = 240;
 
@@ -22,8 +23,8 @@ export default function Layout({ children }) {
 
   const menuItems = [
     { text: '홈', icon: <HomeIcon />, path: '/' },
-    { text: '파일 목록', icon: <ListIcon />, path: '/uploads' },
-    { text: '파일 업로드', icon: <CloudUploadIcon />, path: '/uploads/new' },
+    { text: '보고서 관리', icon: <AssessmentIcon />, path: '/reports' },
+    { text: 'AI 프롬프트 관리', icon: <DescriptionIcon />, path: '/ai-prompts' },
   ];
 
   const drawer = (
@@ -33,6 +34,7 @@ export default function Layout({ children }) {
           헬로 샐리 관리자
         </Typography>
       </Toolbar>
+      <Divider />
       <List>
         {menuItems.map((item) => (
           <ListItem 
@@ -43,11 +45,25 @@ export default function Layout({ children }) {
             selected={router.pathname === item.path}
             sx={{ 
               color: 'inherit',
-              textDecoration: 'none'
+              textDecoration: 'none',
+              '&.Mui-selected': {
+                backgroundColor: 'primary.light',
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                }
+              }
             }}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemIcon sx={{ color: router.pathname === item.path ? 'primary.main' : 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText 
+              primary={item.text} 
+              sx={{ 
+                color: router.pathname === item.path ? 'primary.main' : 'inherit',
+                fontWeight: router.pathname === item.path ? 'bold' : 'normal'
+              }}
+            />
           </ListItem>
         ))}
       </List>

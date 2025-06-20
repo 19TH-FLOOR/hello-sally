@@ -1,6 +1,6 @@
 import { Box, Typography, Paper, Grid, Button } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import ListIcon from '@mui/icons-material/List';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import TemplateIcon from '@mui/icons-material/Description';
 import Link from 'next/link';
 
 export default function Home() {
@@ -10,7 +10,7 @@ export default function Home() {
         헬로 샐리 관리 대시보드
       </Typography>
       <Typography variant="body1" paragraph>
-        음성 파일 업로드, STT 결과 조회, 데이터 관리를 위한 관리자 페이지입니다.
+        음성 파일 업로드, STT 결과 조회, 보고서 생성 및 관리를 위한 관리자 페이지입니다.
       </Typography>
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -28,19 +28,20 @@ export default function Home() {
           >
             <Box>
               <Typography variant="h5" gutterBottom>
-                음성 파일 업로드
+                보고서 관리
               </Typography>
               <Typography variant="body2">
-                음성 파일을 업로드하고 STT 처리를 진행합니다.
+                AI 분석 보고서를 생성하고 관리합니다. 음성 파일을 업로드하고 분석을 진행할 수 있습니다.
               </Typography>
             </Box>
-            <Link href="/uploads/new" passHref>
+            <Link href="/reports" passHref>
               <Button
                 variant="contained"
-                startIcon={<CloudUploadIcon />}
+                color="primary"
+                startIcon={<AssessmentIcon />}
                 sx={{ width: 'fit-content' }}
               >
-                업로드 하기
+                보고서 관리
               </Button>
             </Link>
           </Paper>
@@ -60,20 +61,20 @@ export default function Home() {
           >
             <Box>
               <Typography variant="h5" gutterBottom>
-                파일 목록 보기
+                AI 프롬프트 관리
               </Typography>
               <Typography variant="body2">
-                업로드된 파일 목록과 STT 결과를 확인합니다.
+                AI 분석을 위한 프롬프트를 관리합니다. 다양한 분석 유형에 맞는 프롬프트를 설정할 수 있습니다.
               </Typography>
             </Box>
-            <Link href="/uploads" passHref>
+            <Link href="/ai-prompts" passHref>
               <Button
                 variant="contained"
-                color="secondary"
-                startIcon={<ListIcon />}
+                color="info"
+                startIcon={<TemplateIcon />}
                 sx={{ width: 'fit-content' }}
               >
-                목록 보기
+                AI 프롬프트 관리
               </Button>
             </Link>
           </Paper>
