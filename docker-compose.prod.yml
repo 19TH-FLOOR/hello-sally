@@ -33,6 +33,7 @@ services:
       - NODE_ENV=${NODE_ENV}
       - API_URL=http://api-server:8000
       - NEXT_PUBLIC_API_URL=http://${EC2_IP}:${API_SERVER_PORT}
+      - NEXT_PUBLIC_NODE_ENV=${NODE_ENV}
     depends_on:
       - api-server
     networks:
