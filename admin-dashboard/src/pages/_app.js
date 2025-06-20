@@ -45,6 +45,7 @@ function MyApp({ Component, pageProps }) {
           <Component {...pageProps} />
         </Layout>
         
+        
         {/* 전역 Toast 알림 */}
         <Toaster
           position="top-right"
