@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// API 요청은 Next.js 프록시(/api)를 통해 처리
+const API_BASE_URL = '/api';
 
 export const useReportDetail = (reportId) => {
   // 기본 상태
@@ -74,6 +75,16 @@ export const useReportDetail = (reportId) => {
     }
   }, [reportId]);
 
+  // STT 폴링 중단
+  const stopSTTPolling = useCallback(() => {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+      setPollingIntervalId(null);
+    }
+    setIsPolling(false);
+    setNotifiedFiles(new Set());
+  }, [pollingIntervalId]);
+
   // STT 폴링 시작
   const startSTTPolling = useCallback(() => {
     if (isPolling || pollingIntervalId) return;
@@ -138,7 +149,10 @@ export const useReportDetail = (reportId) => {
           file.stt_status === 'processing' || file.stt_status === 'pending'
         );
         
+        console.log(`🔍 STT 상태 체크: 진행중인 파일 ${hasProcessingSTT ? '있음' : '없음'} (총 ${audioFiles.length}개 파일)`);
+        
         if (!hasProcessingSTT) {
+          console.log('⏹️ 진행중인 STT가 없어서 폴링을 중단합니다.');
           stopSTTPolling();
         }
         
@@ -148,32 +162,9 @@ export const useReportDetail = (reportId) => {
     }, 3000);
     
     setPollingIntervalId(intervalId);
-  }, [reportId, isPolling, pollingIntervalId, notifiedFiles]);
+  }, [reportId, isPolling, pollingIntervalId, notifiedFiles, stopSTTPolling]);
 
-  // STT 폴링 중단
-  const stopSTTPolling = useCallback(() => {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-      setPollingIntervalId(null);
-    }
-    setIsPolling(false);
-    setNotifiedFiles(new Set());
-  }, [pollingIntervalId]);
-
-  // STT 상태 확인 및 폴링 관리
-  const checkAndManageSTTPolling = useCallback(() => {
-    if (!report?.audio_files) return;
-    
-    const hasProcessingSTT = report.audio_files.some(file => 
-      file.stt_status === 'processing' || file.stt_status === 'pending'
-    );
-    
-    if (hasProcessingSTT && !isPolling) {
-      startSTTPolling();
-    } else if (!hasProcessingSTT && isPolling) {
-      stopSTTPolling();
-    }
-  }, [report?.audio_files, isPolling, startSTTPolling, stopSTTPolling]);
+  // STT 상태 확인 및 폴링 관리는 이제 useEffect에서 직접 처리
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -182,11 +173,37 @@ export const useReportDetail = (reportId) => {
       fetchAnalysisStatus();
     }
   }, [reportId, fetchReportDetail, fetchAnalysisStatus]);
-
-  // STT 폴링 상태 관리
+  
+  // 보고서 데이터 로드 후 STT 상태 확인 (조건부 폴링)
   useEffect(() => {
-    checkAndManageSTTPolling();
-  }, [checkAndManageSTTPolling]);
+    console.log('📋 STT 폴링 상태 체크:', {
+      reportId,
+      hasAudioFiles: !!report?.audio_files,
+      audioFilesCount: report?.audio_files?.length || 0,
+      isPolling
+    });
+    
+    // 보고서 데이터가 있고, 현재 폴링 중이 아닐 때만 체크
+    if (report?.audio_files && !isPolling) {
+      const processingFiles = report.audio_files.filter(file => 
+        file.stt_status === 'processing'
+      );
+      
+      console.log('🔍 진행중인 STT 파일:', processingFiles.length, '개');
+      processingFiles.forEach(file => {
+        console.log(`  - ${file.display_name || file.filename}: ${file.stt_status}`);
+      });
+      
+      if (processingFiles.length > 0) {
+        console.log('🚀 진행중인 STT가 있어서 폴링을 시작합니다.');
+        startSTTPolling();
+      } else {
+        console.log('💤 진행중인 STT가 없어서 폴링하지 않습니다.');
+      }
+    }
+  }, [report?.audio_files, isPolling, startSTTPolling]); // audio_files 배열 자체를 의존성으로
+
+  // 기존 폴링 관리 로직은 위의 useEffect로 대체됨
 
   // 컴포넌트 언마운트 시 폴링 정리
   useEffect(() => {

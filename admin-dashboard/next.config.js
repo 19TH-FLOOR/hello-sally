@@ -4,21 +4,9 @@ const nextConfig = {
   // 프로덕션 빌드를 위한 standalone 출력
   output: 'standalone',
   
-  // 런타임 환경변수 설정 (빌드 시점이 아닌 런타임에 결정)
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    API_URL: process.env.API_URL,
-  },
+
   
-  // API 서버로 요청을 프록시
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: (process.env.API_URL || 'http://api-server:8000') + '/:path*', // API_URL=http://api-server:8000 (Docker 내부)
-      },
-    ]
-  },
+  // 범용 API 프록시 ([...proxy].js)를 사용하므로 rewrites 불필요
   // webpack 설정 최적화
   webpack: (config, { isServer, dev }) => {
     // 개발 환경에서는 기본 설정 사용

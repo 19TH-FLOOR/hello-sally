@@ -34,7 +34,8 @@ import {
   EditFileNameDialog
 } from '../../components/reports/dialogs';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// API 요청은 Next.js 프록시(/api)를 통해 처리
+const API_BASE_URL = '/api';
 
 // 유틸리티 함수들
 const getStatusColor = (status) => {

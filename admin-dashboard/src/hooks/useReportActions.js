@@ -1,7 +1,8 @@
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// API 요청은 Next.js 프록시(/api)를 통해 처리
+const API_BASE_URL = '/api';
 
 export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) => {
   const router = useRouter();

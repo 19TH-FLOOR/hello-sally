@@ -1,29 +1,10 @@
 import axios from 'axios';
 
-// API 기본 설정 - 런타임 환경변수 사용
-const getBaseURL = () => {
-  // 디버깅을 위한 환경변수 로깅
-  console.log('🔍 API 환경변수 체크:', {
-    isServer: typeof window === 'undefined',
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    API_URL: process.env.API_URL,
-    NODE_ENV: process.env.NODE_ENV
-  });
-  
-  // 브라우저 환경에서는 NEXT_PUBLIC_API_URL 사용
-  if (typeof window !== 'undefined') {
-    const url = process.env.NEXT_PUBLIC_API_URL || '/api';
-    console.log('🌐 브라우저 환경 - 사용할 API URL:', url);
-    return url;
-  }
-  // 서버 환경에서는 API_URL 사용
-  const url = process.env.API_URL || '/api';
-  console.log('🖥️ 서버 환경 - 사용할 API URL:', url);
-  return url;
-};
+// API 기본 설정 - Next.js 프록시 사용
+// 모든 API 호출은 /api 경로로 통일하여 next.config.js의 rewrites를 통해 실제 API 서버로 프록시됩니다.
 
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
