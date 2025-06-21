@@ -186,8 +186,8 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
     
     try:
-        # S3에서 파일 삭제
-        delete_file_from_s3(file.filename)
+        # S3에서 파일 삭제 (S3 URL 사용)
+        delete_file_from_s3(file.s3_url)
         
         # DB에서 파일 정보 삭제
         db.delete(file)
