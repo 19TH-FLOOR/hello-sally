@@ -4,10 +4,10 @@ from datetime import datetime
 
 
 class AIPromptForReportBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255, description="템플릿명")
-    description: Optional[str] = Field(None, description="템플릿 설명")
+    name: str = Field(..., min_length=1, max_length=255, description="프롬프트명")
+    description: Optional[str] = Field(None, description="프롬프트 설명")
     prompt_content: str = Field(..., description="프롬프트 내용")
-    is_default: bool = Field(False, description="기본 템플릿 여부")
+    is_default: bool = Field(False, description="기본 프롬프트 여부")
 
 
 class AIPromptForReportCreate(AIPromptForReportBase):

@@ -298,7 +298,7 @@ export default function TemplatesPage() {
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>ID</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>프롬프트명</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>설명</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>기본 프롬프트</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>기본 프롬프트 여부</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>생성일</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>작업</TableCell>
             </TableRow>
@@ -679,7 +679,7 @@ export default function TemplatesPage() {
             <Box>
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  템플릿명
+                  프롬프트명
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {selectedTemplate.name}
@@ -695,7 +695,7 @@ export default function TemplatesPage() {
               </Box>
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  기본 템플릿 여부
+                  기본 프롬프트 여부
                 </Typography>
                 <Chip
                   label={selectedTemplate.is_default ? '기본 템플릿' : '사용자 정의'}
