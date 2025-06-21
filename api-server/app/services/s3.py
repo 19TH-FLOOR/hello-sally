@@ -71,12 +71,13 @@ def generate_presigned_url_for_download(s3_url: str, expires_in: int = 3600) -> 
                     detail=f"S3 파일 접근 권한 없음: {error_code}"
                 )
         
-        # Pre-signed URL 생성
+        # Pre-signed URL 생성 (다운로드 강제를 위한 Content-Disposition 헤더 추가)
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
             Params={
                 'Bucket': AWS_S3_BUCKET_NAME, 
-                'Key': key
+                'Key': key,
+                'ResponseContentDisposition': 'attachment'
             },
             ExpiresIn=expires_in
         )

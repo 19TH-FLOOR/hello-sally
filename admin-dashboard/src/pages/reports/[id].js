@@ -172,12 +172,42 @@ export default function ReportDetailPage() {
     setSelectedFileForMenu(null);
   };
 
+  // 파일 다운로드 핸들러
+  const handleDownloadFile = async (file) => {
+    try {
+      // 다운로드 시작 알림
+      toast.loading('다운로드 URL을 생성 중입니다...', { id: 'download' });
+      
+      // 다운로드 URL 요청
+      const response = await fetch(`${API_BASE_URL}/audio-files/${file.id}/download-url`);
+      
+      if (!response.ok) {
+        throw new Error('다운로드 URL 생성에 실패했습니다.');
+      }
+      
+      const data = await response.json();
+      
+      // 다운로드 시작
+      const link = document.createElement('a');
+      link.href = data.download_url;
+      link.download = data.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('파일 다운로드가 시작되었습니다.', { id: 'download' });
+    } catch (error) {
+      console.error('다운로드 실패:', error);
+      toast.error('파일 다운로드에 실패했습니다.', { id: 'download' });
+    }
+  };
+
   const handleMenuAction = (action) => {
     if (!selectedFileForMenu) return;
     
     switch (action) {
       case 'download':
-        window.open(`${API_BASE_URL}/audio-files/${selectedFileForMenu.id}/download`, '_blank');
+        handleDownloadFile(selectedFileForMenu);
         break;
       case 'editName':
         setSelectedAudioFile(selectedFileForMenu);
@@ -361,12 +391,14 @@ export default function ReportDetailPage() {
   // STT 편집 관련 유틸리티 함수들
   const checkHasSpeakerNames = (text) => {
     if (!text) return false;
-    return /^[가-힣a-zA-Z0-9\s\-_]+:\s*/m.test(text);
+    // 한글 완성형(가-힣), 한글 자모(ㄱ-ㅎㅏ-ㅣ), 영문, 숫자, 공백, 하이픈, 언더스코어를 포함
+    return /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s\-_]+:\s*/m.test(text);
   };
 
   const removeSpeakerNamesFromSTT = (text) => {
     if (!text) return '';
-    return text.replace(/^[가-힣a-zA-Z0-9\s\-_]+:\s*/gm, '').trim();
+    // 한글 완성형(가-힣), 한글 자모(ㄱ-ㅎㅏ-ㅣ), 영문, 숫자, 공백, 하이픈, 언더스코어를 포함
+    return text.replace(/^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s\-_]+:\s*/gm, '').trim();
   };
 
   const handleToggleSpeakerNames = (show) => {

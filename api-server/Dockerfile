@@ -23,6 +23,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     default-mysql-client \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # 빌더에서 설치된 Python 패키지 복사

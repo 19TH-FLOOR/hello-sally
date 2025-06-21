@@ -6,6 +6,7 @@ from app.services.s3 import (
     generate_presigned_url_for_download,
 )
 from app.services.stt import get_stt_service
+from app.services.audio_utils import get_audio_duration
 from app.db.models import AudioFile, Report, Transcript, STTConfig
 from app.db.session import get_db
 from sqlalchemy.orm import Session
@@ -45,18 +46,28 @@ def upload_audio(
             detail="지정된 보고서를 찾을 수 없습니다."
         )
 
+    # 파일 사이즈 계산
+    file.file.seek(0, 2)  # 파일 끝으로 이동
+    file_size = file.file.tell()
+    file.file.seek(0)  # 파일 시작으로 되돌리기
+    
+    # 오디오 파일 길이 추출
+    duration = get_audio_duration(file.file, file.content_type)
+    
     # S3 업로드
     s3_result = upload_file_to_s3(file.file, file.filename, file.content_type)
     
     # display_name이 없으면 filename을 기본값으로 사용
     final_display_name = display_name if display_name else file.filename
     
-    # DB 저장 (report_id 포함)
+    # DB 저장 (report_id와 duration 포함)
     audio = AudioFile(
         filename=file.filename,
         display_name=final_display_name,
         s3_url=s3_result["direct_url"],
-        report_id=report_id
+        report_id=report_id,
+        duration=duration,
+        file_size=file_size
     )
     db.add(audio)
     db.commit()
@@ -69,7 +80,9 @@ def upload_audio(
         "s3_url": s3_result["direct_url"],
         "presigned_url": s3_result["presigned_url"],  # 사전 서명 URL 추가
         "report_id": audio.report_id,
-        "uploaded_at": audio.uploaded_at, 
+        "uploaded_at": audio.uploaded_at,
+        "duration": audio.duration,
+        "file_size": audio.file_size,
         "message": "S3 업로드 및 DB 저장 성공"
     }
 
@@ -97,7 +110,9 @@ def get_files(db: Session = Depends(get_db)):
             "stt_status": file.stt_status or "pending",
             "stt_transcript": transcript_content,
             "stt_processed_at": file.stt_processed_at.isoformat() if file.stt_processed_at else None,
-            "stt_error_message": file.stt_error_message
+            "stt_error_message": file.stt_error_message,
+            "duration": file.duration,
+            "file_size": file.file_size
         })
     
     return result
@@ -121,6 +136,36 @@ def download_file(file_id: int, db: Session = Depends(get_db)):
         
         # 사전 서명 URL로 리다이렉트
         return RedirectResponse(url=presigned_url)
+    except HTTPException:
+        # generate_presigned_url_for_download에서 발생한 HTTPException 재발생
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"다운로드 URL 생성 실패: {str(e)}"
+        )
+
+@router.get("/{file_id}/download-url")
+def get_download_url(file_id: int, db: Session = Depends(get_db)):
+    """
+    파일 다운로드를 위한 사전 서명 URL 반환 (JSON 응답)
+    """
+    # DB에서 파일 정보 조회
+    file = db.query(AudioFile).filter(AudioFile.id == file_id).first()
+    if not file:
+        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
+    
+    try:
+        # 개선된 Pre-signed URL 생성 함수 사용 (10분 유효)
+        presigned_url = generate_presigned_url_for_download(
+            file.s3_url, 
+            expires_in=600
+        )
+        
+        return {
+            "download_url": presigned_url,
+            "filename": file.display_name or file.filename
+        }
     except HTTPException:
         # generate_presigned_url_for_download에서 발생한 HTTPException 재발생
         raise

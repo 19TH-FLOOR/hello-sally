@@ -169,10 +169,15 @@ export default async function handler(req, res) {
     // 응답 상태 코드 설정
     res.status(response.status);
     
-    // 응답 데이터 전송 (204는 body 없음)
-    if (response.status === 204) {
+    // 리다이렉트 응답 처리
+    if (response.status >= 300 && response.status < 400) {
+      // 리다이렉트 응답은 그대로 전달
+      res.end();
+    } else if (response.status === 204) {
+      // 204는 body 없음
       res.end();
     } else {
+      // 일반 응답은 JSON으로 변환
       res.json(response.data);
     }
     

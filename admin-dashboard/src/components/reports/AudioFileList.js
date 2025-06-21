@@ -17,6 +17,7 @@ import {
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
+import { formatDuration, formatFileSize } from '../../utils/audioUtils';
 
 export default function AudioFileList({ 
   report, 
@@ -101,6 +102,16 @@ export default function AudioFileList({
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block' }}>
                           업로드 일시: {formatToKoreanDateTime(file.uploaded_at)}
                         </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            ⏱️ {formatDuration(file.duration)}
+                          </Typography>
+                          {file.file_size && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              📁 {formatFileSize(file.file_size)}
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     }
                     secondary={
