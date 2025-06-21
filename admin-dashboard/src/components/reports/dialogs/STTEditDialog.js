@@ -109,7 +109,8 @@ export default function STTEditDialog({
                   💡 화자명이 숨겨진 상태입니다.
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#1976d2', mt: 0.5 }}>
-                  현재 보이는 텍스트 그대로 저장됩니다.
+                  이대로 저장하면 보이는대로 화자명이 제거된 텍스트가 저장됩니다.<br/>
+                  화자명 표시 옵션을 켜면 이 상태에서 편집된 텍스트는 잃게됩니다.
                 </Typography>
               </Box>
             )}

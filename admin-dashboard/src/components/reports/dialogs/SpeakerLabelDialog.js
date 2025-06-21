@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -24,8 +25,22 @@ export default function SpeakerLabelDialog({
   onSave,
   loading = false
 }) {
+  // 컨펌 다이얼로그 상태
+  const [showConfirm, setShowConfirm] = useState(false);
+
   // 고유한 화자 목록 추출
   const uniqueSpeakers = [...new Set(speakerLabels.map(label => label.speaker))].filter(Boolean);
+
+  // 저장 버튼 클릭 시 컨펌 다이얼로그 표시
+  const handleSaveClick = () => {
+    setShowConfirm(true);
+  };
+
+  // 컨펌 후 실제 저장 실행
+  const handleConfirmSave = () => {
+    setShowConfirm(false);
+    onSave();
+  };
 
   return (
     <Dialog 
@@ -161,7 +176,7 @@ export default function SpeakerLabelDialog({
           취소
         </Button>
         <Button 
-          onClick={onSave}
+          onClick={handleSaveClick}
           variant="contained"
           disabled={loading}
           sx={{
@@ -182,6 +197,35 @@ export default function SpeakerLabelDialog({
           {loading ? '저장 중...' : '저장'}
         </Button>
       </DialogActions>
+
+      {/* 컨펌 다이얼로그 */}
+      <Dialog
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>화자 라벨링 저장 확인</DialogTitle>
+        <DialogContent>
+          <Typography>
+            화자 라벨링을 진행하게 되면 편집된 내용이 모두 초기화됩니다.
+            <br />
+            그래도 진행하시겠습니까?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirm(false)}>
+            취소
+          </Button>
+          <Button 
+            onClick={handleConfirmSave}
+            variant="contained" 
+            color="primary"
+          >
+            확인
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 } 
