@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {
   Box,
@@ -31,6 +31,7 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import { formatToKoreanDate } from '../../utils/dateUtils';
+import InterpolationHelper from '../../components/reports/InterpolationHelper';
 
 // API 요청은 Next.js 프록시(/api)를 통해 처리
 const API_BASE_URL = '/api';
@@ -55,6 +56,9 @@ export default function TemplatesPage() {
     prompt_content: '',
     is_default: false
   });
+
+  // 텍스트 필드 참조
+  const promptTextFieldRef = useRef(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -442,7 +446,16 @@ export default function TemplatesPage() {
               }
             }}
           />
+          
+          {/* 인터폴레이션 헬퍼 */}
+          <InterpolationHelper 
+            variant="compact" 
+            textFieldRef={promptTextFieldRef}
+            formData={formData}
+          />
+          
           <TextField
+            ref={promptTextFieldRef}
             fullWidth
             label="프롬프트 내용"
             value={formData.prompt_content}
@@ -575,7 +588,16 @@ export default function TemplatesPage() {
               }
             }}
           />
+          
+          {/* 인터폴레이션 헬퍼 */}
+          <InterpolationHelper 
+            variant="compact" 
+            textFieldRef={promptTextFieldRef}
+            formData={formData}
+          />
+          
           <TextField
+            ref={promptTextFieldRef}
             fullWidth
             label="프롬프트 내용"
             value={formData.prompt_content}

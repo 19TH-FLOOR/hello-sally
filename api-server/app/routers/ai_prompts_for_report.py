@@ -164,3 +164,37 @@ def get_default_template(db: Session = Depends(get_db)):
         )
     
     return template 
+
+
+@router.get("/interpolation/variables")
+def get_interpolation_variables():
+    """인터폴레이션 변수 정보 조회"""
+    variables = [
+        {
+            "variable": "{{conversation_content}}",
+            "description": "모든 오디오 파일의 STT 결과를 결합한 전체 대화 내용",
+            "type": "string",
+            "example": "부모: 안녕하세요\\n아이: 안녕하세요\\n부모: 오늘 뭐 했어?\\n아이: 놀았어요",
+            "notes": [
+                "여러 오디오 파일이 있는 경우 모든 내용이 결합됩니다",
+                "파일명은 포함되지 않고 순수 대화 내용만 포함됩니다",
+                "화자 구분이 있는 경우 \"화자명: 내용\" 형태로 표시됩니다"
+            ]
+        },
+        {
+            "variable": "{{conversation_duration}}",
+            "description": "모든 오디오 파일의 총 재생 시간 (초 단위)",
+            "type": "number",
+            "example": "180",
+            "notes": [
+                "초 단위의 숫자로 제공됩니다 (예: 180 = 3분)",
+                "여러 오디오 파일이 있는 경우 모든 파일의 시간이 합산됩니다",
+                "프롬프트에서 분 단위로 변환하거나 조건문에 활용할 수 있습니다"
+            ]
+        }
+    ]
+    
+    return {
+        "variables": variables,
+        "total": len(variables)
+    }
