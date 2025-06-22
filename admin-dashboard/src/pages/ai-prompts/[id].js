@@ -14,8 +14,8 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
-import InterpolationHelper from '../../components/reports/InterpolationHelper';
-import PromptEditor, { UsedVariables } from '../../components/reports/PromptEditor';
+import InterpolationHelper from '../../components/ai-prompts/InterpolationHelper';
+import PromptEditor, { UsedVariables } from '../../components/ai-prompts/PromptEditor';
 
 // API 요청은 Next.js 프록시(/api)를 통해 처리
 const API_BASE_URL = '/api';

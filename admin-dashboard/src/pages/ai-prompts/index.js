@@ -38,7 +38,7 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { formatToKoreanDate } from '../../utils/dateUtils';
-import InterpolationHelper from '../../components/reports/InterpolationHelper';
+import InterpolationHelper from '../../components/ai-prompts/InterpolationHelper';
 
 // API 요청은 Next.js 프록시(/api)를 통해 처리
 const API_BASE_URL = '/api';
