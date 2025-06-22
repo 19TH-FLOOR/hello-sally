@@ -18,12 +18,14 @@ import {
   ExpandMore as ExpandMoreIcon,
   Psychology as PsychologyIcon,
   AccessTime as AccessTimeIcon,
-  SmartToy as SmartToyIcon
+  SmartToy as SmartToyIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
 
 export default function AnalysisResults({ report, latestOnly = false, onToggleLatestOnly }) {
   const [showLatestOnly, setShowLatestOnly] = useState(latestOnly);
+  const [copySuccess, setCopySuccess] = useState({});
 
   if (!report.report_data || report.report_data.length === 0) {
     return (
@@ -63,6 +65,55 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
     new Date(b.generated_at) - new Date(a.generated_at)
   );
   const displayData = showLatestOnly ? [sortedData[0]] : sortedData;
+
+  // 복사 기능
+  const handleCopyToClipboard = async (data, dataId) => {
+    let textToCopy = '';
+    
+    try {
+      if (data.original_json) {
+        // 원본 JSON이 있는 경우 그것을 사용
+        textToCopy = data.original_json;
+      } else if (data.parsed_data) {
+        // 파싱된 데이터가 있는 경우
+        textToCopy = JSON.stringify(data.parsed_data, null, 2);
+      } else {
+        // 메타데이터 제외하고 복사
+        const { _metadata, ...copyData } = data;
+        textToCopy = JSON.stringify(copyData, null, 2);
+      }
+      
+      await navigator.clipboard.writeText(textToCopy);
+      
+      // 성공 상태 표시
+      setCopySuccess(prev => ({ ...prev, [dataId]: true }));
+      
+      // 2초 후 성공 상태 초기화
+      setTimeout(() => {
+        setCopySuccess(prev => ({ ...prev, [dataId]: false }));
+      }, 2000);
+      
+    } catch (error) {
+      console.error('복사 실패:', error);
+      
+      try {
+        // 폴백: 텍스트 선택 방식
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        setCopySuccess(prev => ({ ...prev, [dataId]: true }));
+        setTimeout(() => {
+          setCopySuccess(prev => ({ ...prev, [dataId]: false }));
+        }, 2000);
+      } catch (fallbackError) {
+        console.error('폴백 복사도 실패:', fallbackError);
+      }
+    }
+  };
 
   const renderJSONContent = (data) => {
     try {
@@ -250,7 +301,7 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                <Box>
+                <Box sx={{ flex: 1 }}>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>
                     {showLatestOnly ? '최신 분석 결과' : `분석 결과 #${index + 1}`}
                   </Typography>
@@ -261,6 +312,25 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
                     </Typography>
                   </Box>
                 </Box>
+                
+                {/* 복사 버튼 */}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ContentCopyIcon />}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Accordion 확장/축소 방지
+                    handleCopyToClipboard(data.analysis_data, data.id);
+                  }}
+                  sx={{ 
+                    minWidth: 'auto',
+                    px: 1,
+                    py: 0.5,
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  {copySuccess[data.id] ? '복사됨!' : '복사'}
+                </Button>
               </Box>
             </AccordionSummary>
             
