@@ -40,13 +40,11 @@ export default function AudioFileList({
   onDeselectAll,
   onBatchSTT
 }) {
-  const sttEligibleFiles = report.audio_files?.filter(file => 
-    file.stt_status === 'pending' || file.stt_status === 'failed'
-  ) || [];
+  const allFiles = report.audio_files || [];
 
-  const hasEligibleFiles = sttEligibleFiles.length > 0;
+  const hasFiles = allFiles.length > 0;
   const hasSelectedFiles = selectedFileIds.length > 0;
-  const allEligibleSelected = hasEligibleFiles && sttEligibleFiles.every(file => selectedFileIds.includes(file.id));
+  const allFilesSelected = hasFiles && allFiles.every(file => selectedFileIds.includes(file.id));
 
   return (
     <Card
@@ -76,7 +74,7 @@ export default function AudioFileList({
             음성 파일 ({report.audio_files?.length || 0}개)
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            {hasEligibleFiles && (
+            {hasFiles && (
               <>
                 {hasSelectedFiles && (
                   <Button
@@ -99,8 +97,8 @@ export default function AudioFileList({
                 <Button
                   variant="outlined"
                   size="small"
-                  startIcon={allEligibleSelected ? <DeselectIcon /> : <SelectAllIcon />}
-                  onClick={allEligibleSelected ? onDeselectAll : onSelectAll}
+                  startIcon={allFilesSelected ? <DeselectIcon /> : <SelectAllIcon />}
+                  onClick={allFilesSelected ? onDeselectAll : onSelectAll}
                   sx={{ 
                     fontSize: '0.75rem',
                     minWidth: 'auto',
@@ -110,7 +108,7 @@ export default function AudioFileList({
                     }
                   }}
                 >
-                  {allEligibleSelected ? '전체 해제' : '전체 선택'}
+                  {allFilesSelected ? '전체 해제' : '전체 선택'}
                 </Button>
               </>
             )}
@@ -132,7 +130,7 @@ export default function AudioFileList({
           </Box>
         </Box>
         
-        {hasEligibleFiles && hasSelectedFiles && (
+        {hasFiles && hasSelectedFiles && (
           <Box sx={{ 
             mb: 2, 
             p: 2, 
@@ -149,7 +147,6 @@ export default function AudioFileList({
         {report.audio_files && report.audio_files.length > 0 ? (
           <List sx={{ p: 0 }}>
             {report.audio_files.map((file, index) => {
-              const isEligible = file.stt_status === 'pending' || file.stt_status === 'failed';
               const isSelected = selectedFileIds.includes(file.id);
               
               return (
@@ -166,21 +163,19 @@ export default function AudioFileList({
                       }
                     }}
                   >
-                    {isEligible && (
-                      <Box sx={{ mr: 1 }}>
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={(e) => onFileSelect(file.id, e.target.checked)}
-                          size="small"
-                          sx={{
-                            color: 'rgba(255, 107, 107, 0.6)',
-                            '&.Mui-checked': {
-                              color: '#ff6b6b',
-                            },
-                          }}
-                        />
-                      </Box>
-                    )}
+                    <Box sx={{ mr: 1 }}>
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={(e) => onFileSelect(file.id, e.target.checked)}
+                        size="small"
+                        sx={{
+                          color: 'rgba(255, 107, 107, 0.6)',
+                          '&.Mui-checked': {
+                            color: '#ff6b6b',
+                          },
+                        }}
+                      />
+                    </Box>
                     
                     <ListItemText
                       primary={

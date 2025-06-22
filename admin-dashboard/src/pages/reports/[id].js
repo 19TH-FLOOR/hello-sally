@@ -166,10 +166,8 @@ export default function ReportDetailPage() {
   };
 
   const handleSelectAll = () => {
-    const eligibleFiles = report.audio_files?.filter(file => 
-      file.stt_status === 'pending' || file.stt_status === 'failed'
-    ) || [];
-    setSelectedFileIds(eligibleFiles.map(file => file.id));
+    const allFiles = report.audio_files || [];
+    setSelectedFileIds(allFiles.map(file => file.id));
   };
 
   const handleDeselectAll = () => {
@@ -692,6 +690,8 @@ export default function ReportDetailPage() {
         onRestart={handleRestartSTT}
         loading={sttLoading}
         isBatchMode={isBatchMode}
+        getSTTStatusText={getSTTStatusText}
+        getSTTStatusColor={getSTTStatusColor}
       />
 
       <STTEditDialog

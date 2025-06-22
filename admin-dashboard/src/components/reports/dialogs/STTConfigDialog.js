@@ -33,7 +33,9 @@ export default function STTConfigDialog({
   selectedAudioFile,
   selectedAudioFiles = [], // 일괄 처리용 다중 파일
   loading = false,
-  isBatchMode = false // 일괄 모드 여부
+  isBatchMode = false, // 일괄 모드 여부
+  getSTTStatusText,
+  getSTTStatusColor
 }) {
   if (!sttConfig) {
     return null;
@@ -125,8 +127,8 @@ export default function STTConfigDialog({
                               {file.display_name || file.filename}
                             </Typography>
                             <Chip
-                              label={file.stt_status === 'pending' ? '대기중' : '실패'}
-                              color={file.stt_status === 'pending' ? 'default' : 'error'}
+                              label={getSTTStatusText(file.stt_status)}
+                              color={getSTTStatusColor(file.stt_status)}
                               size="small"
                               sx={{ fontSize: '0.7rem', height: 20 }}
                             />
