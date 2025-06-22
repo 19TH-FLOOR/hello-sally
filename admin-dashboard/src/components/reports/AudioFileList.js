@@ -262,21 +262,48 @@ export default function AudioFileList({
           </List>
         ) : (
           <Box 
+            onClick={onUpload}
             sx={{ 
               textAlign: 'center', 
               py: 6,
               color: 'text.secondary',
               background: 'rgba(0, 0, 0, 0.02)',
               borderRadius: 2,
-              border: '1px dashed rgba(0, 0, 0, 0.1)'
+              border: '1px dashed rgba(0, 0, 0, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                background: 'rgba(102, 126, 234, 0.04)',
+                borderColor: 'rgba(102, 126, 234, 0.3)',
+                color: 'primary.main',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)',
+              }
             }}
           >
-            <UploadIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+            <UploadIcon sx={{ 
+              fontSize: 48, 
+              mb: 2, 
+              opacity: 0.5,
+              transition: 'all 0.2s ease-in-out',
+              '.MuiBox-root:hover &': {
+                opacity: 0.8,
+                transform: 'scale(1.1)',
+              }
+            }} />
             <Typography variant="body1" sx={{ fontWeight: 500 }}>
               업로드된 음성 파일이 없습니다.
             </Typography>
             <Typography variant="body2" sx={{ mt: 1 }}>
-              파일 업로드 버튼을 클릭하여 음성 파일을 추가해보세요.
+              여기를 클릭하거나 상단 버튼을 클릭하여 음성 파일을 추가해보세요.
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              mt: 2, 
+              display: 'block',
+              opacity: 0.7,
+              fontStyle: 'italic'
+            }}>
+              💡 드래그 앤 드롭으로 여러 파일을 한 번에 업로드할 수 있습니다.
             </Typography>
           </Box>
         )}
