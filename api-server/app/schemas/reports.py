@@ -174,6 +174,12 @@ class ReportDetailResponse(ReportResponse):
         from_attributes = True
 
 
+# AI 분석 요청 스키마
+class AIAnalysisRequest(BaseModel):
+    ai_prompt_id: Optional[int] = Field(None, description="AI 프롬프트 ID")
+    model: Optional[str] = Field(None, description="OpenAI 모델명")
+
+
 # 보고서 목록 응답
 class ReportListResponse(BaseModel):
     reports: List[ReportResponse]

@@ -23,6 +23,7 @@ import ReportBasicInfo from '../../components/reports/ReportBasicInfo';
 import AudioFileList from '../../components/reports/AudioFileList';
 import AnalysisResults from '../../components/reports/AnalysisResults';
 import PublishedReports from '../../components/reports/PublishedReports';
+import AIAnalysisPanel from '../../components/reports/AIAnalysisPanel';
 
 // 다이얼로그 컴포넌트들
 import {
@@ -618,9 +619,12 @@ export default function ReportDetailPage() {
           />
         </Grid>
 
-        {/* AI 분석 결과 */}
+        {/* AI 분석 패널 (설정 + 결과) */}
         <Grid item xs={12}>
-          <AnalysisResults report={report} />
+          <AIAnalysisPanel 
+            report={report} 
+            onReportUpdate={fetchReportDetail}
+          />
         </Grid>
 
         {/* 발행된 보고서 */}

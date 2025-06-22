@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from fastapi import (
+    APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+)
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import logging
 
 from app.db.session import get_db
-from app.db.models import Report, AudioFile, Transcript, ReportData, PublishedReport
+from app.db.models import (
+    Report, AudioFile, Transcript, ReportData, PublishedReport
+)
 from app.schemas.reports import (
-    ReportCreate, ReportUpdate, ReportResponse, ReportDetailResponse,
-    ReportListResponse, ReportStatus
+    ReportCreate, ReportUpdate, ReportResponse, 
+    ReportDetailResponse, ReportListResponse, ReportStatus,
+    AIAnalysisRequest
 )
 from app.services.ai_analysis import ai_analysis_service
 from app.services.canva import canva_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -40,7 +47,9 @@ def create_report(
 def get_reports(
     page: int = Query(1, ge=1, description="페이지 번호"),
     size: int = Query(10, ge=1, le=100, description="페이지 크기"),
-    status_filter: Optional[ReportStatus] = Query(None, description="상태 필터"),
+    status_filter: Optional[ReportStatus] = Query(
+        None, description="상태 필터"
+    ),
     db: Session = Depends(get_db)
 ):
     """보고서 목록 조회 (페이지네이션 지원)"""
@@ -54,7 +63,9 @@ def get_reports(
     total = query.count()
     
     # 페이지네이션 적용
-    reports = query.order_by(Report.created_at.desc()).offset((page - 1) * size).limit(size).all()
+    reports = query.order_by(Report.created_at.desc()).offset(
+        (page - 1) * size
+    ).limit(size).all()
     
     return ReportListResponse(
         reports=reports,
@@ -152,7 +163,8 @@ def update_report_status(
         )
     
     # 상태 전환 검증
-    if report.status == ReportStatus.PUBLISHED and new_status != ReportStatus.PUBLISHED:
+    if (report.status == ReportStatus.PUBLISHED 
+        and new_status != ReportStatus.PUBLISHED):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="이미 발행된 보고서의 상태를 변경할 수 없습니다."
@@ -163,13 +175,85 @@ def update_report_status(
     db.commit()
     db.refresh(report)
     
-    return {"message": f"보고서 상태가 {new_status}로 변경되었습니다.", "report": report}
+    return {
+        "message": f"보고서 상태가 {new_status}로 변경되었습니다.",
+        "report": report
+    }
+
+
+@router.get("/{report_id}/ai-analysis/models")
+def get_supported_models(report_id: int, db: Session = Depends(get_db)):
+    """지원되는 OpenAI 모델 목록 조회"""
+    # 보고서 존재 확인
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="보고서를 찾을 수 없습니다."
+        )
+    
+    return {
+        "report_id": report_id,
+        "supported_models": ai_analysis_service.get_supported_models()
+    }
+
+
+@router.post("/{report_id}/ai-analysis/preview")
+def preview_ai_analysis(
+    report_id: int,
+    ai_prompt_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """AI 분석 프롬프트 미리보기"""
+    try:
+        preview_data = ai_analysis_service.preview_prompt(
+            report_id=report_id,
+            ai_prompt_id=ai_prompt_id
+        )
+        return preview_data
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/{report_id}/ai-analysis/latest")
+def get_latest_analysis(report_id: int, db: Session = Depends(get_db)):
+    """최신 AI 분석 결과 조회"""
+    # 보고서 존재 확인
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="보고서를 찾을 수 없습니다."
+        )
+    
+    # 최신 분석 결과 조회
+    latest_analysis = db.query(ReportData).filter(
+        ReportData.report_id == report_id
+    ).order_by(ReportData.generated_at.desc()).first()
+    
+    if not latest_analysis:
+        return {
+            "report_id": report_id,
+            "has_analysis": False,
+            "analysis_data": None
+        }
+    
+    return {
+        "report_id": report_id,
+        "has_analysis": True,
+        "analysis_data": latest_analysis.analysis_data,
+        "generated_at": latest_analysis.generated_at,
+        "ai_prompt_id": latest_analysis.ai_prompt_id
+    }
 
 
 @router.post("/{report_id}/analyze")
 def analyze_report(
     report_id: int,
-    ai_prompt_id: Optional[int] = None,
+    request: AIAnalysisRequest,
     background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db)
 ):
@@ -215,9 +299,10 @@ def analyze_report(
     # 백그라운드에서 분석 실행
     if background_tasks:
         background_tasks.add_task(
-            run_analysis_background, 
-            report_id, 
-            ai_prompt_id
+            run_analysis_background,
+            report_id,
+            request.ai_prompt_id,
+            request.model
         )
     
     return {
@@ -296,7 +381,11 @@ def get_published_reports(report_id: int, db: Session = Depends(get_db)):
     }
 
 
-def run_analysis_background(report_id: int, ai_prompt_id: Optional[int] = None):
+def run_analysis_background(
+    report_id: int, 
+    ai_prompt_id: Optional[int] = None,
+    model: Optional[str] = None
+):
     """백그라운드에서 AI 분석 실행"""
     from app.db.session import SessionLocal
     
@@ -305,7 +394,8 @@ def run_analysis_background(report_id: int, ai_prompt_id: Optional[int] = None):
         # AI 분석 실행
         result = ai_analysis_service.analyze_conversation(
             report_id=report_id,
-            ai_prompt_id=ai_prompt_id
+            ai_prompt_id=ai_prompt_id,
+            model=model
         )
         
         # 보고서 상태를 completed로 변경

@@ -3,4 +3,5 @@ export { default as FileUploadDialog } from './FileUploadDialog';
 export { default as STTConfigDialog } from './STTConfigDialog';
 export { default as STTEditDialog } from './STTEditDialog';
 export { default as SpeakerLabelDialog } from './SpeakerLabelDialog';
-export { default as EditFileNameDialog } from './EditFileNameDialog'; 
+export { default as EditFileNameDialog } from './EditFileNameDialog';
+export { default as AIAnalysisConfigDialog } from './AIAnalysisConfigDialog'; 

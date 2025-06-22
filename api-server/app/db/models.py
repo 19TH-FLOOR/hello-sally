@@ -28,7 +28,8 @@ class Report(Base):
         "AudioFile", back_populates="report", cascade="all, delete-orphan"
     )
     report_data = relationship(
-        "ReportData", back_populates="report", cascade="all, delete-orphan"
+        "ReportData", back_populates="report", cascade="all, delete-orphan",
+        order_by="ReportData.generated_at.desc()"
     )
     published_reports = relationship(
         "PublishedReport", back_populates="report", cascade="all, delete-orphan"
