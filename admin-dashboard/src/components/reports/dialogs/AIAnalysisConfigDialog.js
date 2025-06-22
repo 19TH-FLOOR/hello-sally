@@ -163,7 +163,7 @@ export default function AIAnalysisConfigDialog({
     onClose();
   };
 
-  const selectedPromptData = prompts.find(p => p.id === selectedPrompt);
+
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -235,21 +235,7 @@ export default function AIAnalysisConfigDialog({
             </Select>
           </FormControl>
 
-          {/* 선택된 프롬프트 정보 */}
-          {selectedPromptData && (
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" gutterBottom>
-                  선택된 프롬프트: {selectedPromptData.name}
-                </Typography>
-                {selectedPromptData.description && (
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedPromptData.description}
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          )}
+
 
           {/* 프롬프트 미리보기 */}
           <Box>

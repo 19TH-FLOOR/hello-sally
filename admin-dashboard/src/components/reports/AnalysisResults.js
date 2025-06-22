@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -12,20 +12,29 @@ import {
   Switch,
   Chip,
   Grid,
-  Paper
+  Paper,
+  Collapse,
+  IconButton
 } from '@mui/material';
 import { 
   ExpandMore as ExpandMoreIcon,
   Psychology as PsychologyIcon,
   AccessTime as AccessTimeIcon,
   SmartToy as SmartToyIcon,
-  ContentCopy as ContentCopyIcon
+  ContentCopy as ContentCopyIcon,
+  Article as ArticleIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreSmallIcon
 } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
+
+const API_BASE_URL = '/api';
 
 export default function AnalysisResults({ report, latestOnly = false, onToggleLatestOnly }) {
   const [showLatestOnly, setShowLatestOnly] = useState(latestOnly);
   const [copySuccess, setCopySuccess] = useState({});
+  const [promptDetails, setPromptDetails] = useState({});
+  const [showPrompts, setShowPrompts] = useState({});
 
   if (!report.report_data || report.report_data.length === 0) {
     return (
@@ -59,6 +68,38 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
       onToggleLatestOnly(newValue);
     }
   };
+
+  // 프롬프트 정보 로드
+  useEffect(() => {
+    const loadPromptDetails = async () => {
+      const uniquePromptIds = [...new Set(
+        report.report_data
+          ?.filter(data => data.ai_prompt_id)
+          .map(data => data.ai_prompt_id) || []
+      )];
+
+      for (const promptId of uniquePromptIds) {
+        if (!promptDetails[promptId]) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/ai-prompts-for-report/${promptId}`);
+            if (response.ok) {
+              const promptData = await response.json();
+              setPromptDetails(prev => ({
+                ...prev,
+                [promptId]: promptData
+              }));
+            }
+          } catch (error) {
+            console.error(`프롬프트 ${promptId} 로드 실패:`, error);
+          }
+        }
+      }
+    };
+
+    if (report.report_data && report.report_data.length > 0) {
+      loadPromptDetails();
+    }
+  }, [report.report_data]);
 
   // 표시할 데이터 결정 - 최신 순으로 정렬 보장
   const sortedData = [...report.report_data].sort((a, b) => 
@@ -305,11 +346,22 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>
                     {showLatestOnly ? '최신 분석 결과' : `분석 결과 #${index + 1}`}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                    <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      {formatToKoreanDateTime(data.generated_at)}
-                    </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {formatToKoreanDateTime(data.generated_at)}
+                      </Typography>
+                    </Box>
+                    {/* 프롬프트 정보 */}
+                    {data.ai_prompt_id && promptDetails[data.ai_prompt_id] && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ArticleIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+                        <Typography variant="caption" color="primary.main" sx={{ fontWeight: 500 }}>
+                          {promptDetails[data.ai_prompt_id].name}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </Box>
                 
@@ -335,6 +387,82 @@ export default function AnalysisResults({ report, latestOnly = false, onToggleLa
             </AccordionSummary>
             
             <AccordionDetails sx={{ pt: 0 }}>
+              {/* 프롬프트 상세 정보 */}
+              {data.ai_prompt_id && promptDetails[data.ai_prompt_id] && (
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      startIcon={<ArticleIcon />}
+                      endIcon={showPrompts[data.id] ? <ExpandLessIcon /> : <ExpandMoreSmallIcon />}
+                      onClick={() => setShowPrompts(prev => ({
+                        ...prev,
+                        [data.id]: !prev[data.id]
+                      }))}
+                      sx={{
+                        color: 'primary.main',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        p: 1,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        '&:hover': {
+                          backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                        }
+                      }}
+                    >
+                      사용된 프롬프트 {showPrompts[data.id] ? '숨기기' : '보기'}
+                    </Button>
+                  </Box>
+                  
+                  <Box sx={{ mb: 2 }}>
+                    <Grid container spacing={1}>
+                      <Grid item>
+                        <Chip 
+                          label={promptDetails[data.ai_prompt_id].name}
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+
+                  <Collapse in={showPrompts[data.id]}>
+                    <Box
+                      sx={{
+                        background: 'rgba(102, 126, 234, 0.04)',
+                        borderRadius: 2,
+                        p: 2,
+                        border: '1px solid rgba(102, 126, 234, 0.2)',
+                        maxHeight: '200px',
+                        overflow: 'auto',
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 500 }}>
+                        프롬프트 내용:
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          whiteSpace: 'pre-wrap',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                          lineHeight: 1.4
+                        }}
+                      >
+                        {promptDetails[data.ai_prompt_id].prompt_content}
+                      </Typography>
+                    </Box>
+                  </Collapse>
+                </Box>
+              )}
+
+              {/* 분석 결과 */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary', mb: 2 }}>
+                AI 분석 결과
+              </Typography>
               {renderJSONContent(data.analysis_data)}
             </AccordionDetails>
           </Accordion>
