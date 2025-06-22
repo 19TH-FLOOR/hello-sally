@@ -1,20 +1,10 @@
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  Edit as EditIcon,
-  Psychology as AnalyzeIcon,
-  PictureAsPdf as PublishIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import Link from 'next/link';
 
 export default function ReportHeader({ 
   report, 
-  isPolling, 
-  onEdit, 
-  onAnalyze, 
-  onPublish, 
-  onDelete 
+  isPolling
 }) {
   return (
     <Box sx={{ mb: 4 }}>
@@ -92,73 +82,7 @@ export default function ReportHeader({
             </Box>
           )}
         </Box>
-        
-        {/* 액션 버튼들 */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={onEdit}
-            sx={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
-              }
-            }}
-          >
-            수정
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<AnalyzeIcon />}
-            onClick={onAnalyze}
-            disabled={report.status === 'analyzing'}
-            sx={{
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              '&:hover': {
-                borderColor: 'primary.dark',
-                backgroundColor: 'rgba(102, 126, 234, 0.04)',
-              }
-            }}
-          >
-            AI 분석
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<PublishIcon />}
-            onClick={onPublish}
-            disabled={report.status !== 'completed'}
-            sx={{
-              borderColor: 'success.main',
-              color: 'success.main',
-              '&:hover': {
-                borderColor: 'success.dark',
-                backgroundColor: 'rgba(76, 175, 80, 0.04)',
-              }
-            }}
-          >
-            발행
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<DeleteIcon />}
-            onClick={onDelete}
-            disabled={report.status === 'published'}
-            sx={{
-              borderColor: 'error.main',
-              color: 'error.main',
-              '&:hover': {
-                borderColor: 'error.dark',
-                backgroundColor: 'rgba(244, 67, 54, 0.04)',
-              }
-            }}
-          >
-            삭제
-          </Button>
-        </Box>
+
       </Box>
     </Box>
   );

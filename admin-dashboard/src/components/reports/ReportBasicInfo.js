@@ -1,7 +1,8 @@
-import { Box, Typography, Card, CardContent, Chip } from '@mui/material';
+import { Box, Typography, Card, CardContent, Chip, Button } from '@mui/material';
+import { Edit as EditIcon } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
 
-export default function ReportBasicInfo({ report, getStatusColor, getStatusText }) {
+export default function ReportBasicInfo({ report, getStatusColor, getStatusText, onEdit }) {
   return (
     <Card
       elevation={0}
@@ -19,17 +20,34 @@ export default function ReportBasicInfo({ report, getStatusColor, getStatusText 
       }}
     >
       <CardContent sx={{ p: 3 }}>
-        <Typography 
-          variant="h6" 
-          gutterBottom 
-          sx={{ 
-            fontWeight: 600,
-            color: 'primary.main',
-            mb: 3
-          }}
-        >
-          기본 정보
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600,
+              color: 'primary.main'
+            }}
+          >
+            기본 정보
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={onEdit}
+            size="small"
+            sx={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+              fontSize: '0.875rem',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+              }
+            }}
+          >
+            수정
+          </Button>
+        </Box>
         <Box sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
             상태

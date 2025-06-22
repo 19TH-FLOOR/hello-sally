@@ -574,10 +574,6 @@ export default function ReportDetailPage() {
       <ReportHeader
         report={report}
         isPolling={isPolling}
-        onEdit={() => openDialog('editReport')}
-        onAnalyze={actions.analyzeReport}
-        onPublish={actions.publishReport}
-        onDelete={actions.deleteReport}
       />
 
       {error && (
@@ -593,6 +589,7 @@ export default function ReportDetailPage() {
             report={report}
             getStatusColor={getStatusColor}
             getStatusText={getStatusText}
+            onEdit={() => openDialog('editReport')}
           />
         </Grid>
 

@@ -102,36 +102,7 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
     });
   };
 
-  // 보고서 분석
-  const analyzeReport = async () => {
-    toast('아직 개발중입니다', {
-      icon: '🚧',
-      duration: 3000,
-      style: {
-        borderRadius: '10px',
-        background: '#f59e0b',
-        color: '#fff',
-      }
-    });
-  };
 
-  // 보고서 발행
-  const publishReport = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/reports/${reportId}/publish`, {
-        method: 'POST'
-      });
-      
-      if (!response.ok) throw new Error('보고서 발행에 실패했습니다.');
-      
-      toast.success('보고서 발행이 시작되었습니다.');
-      await fetchReportDetail();
-      return true;
-    } catch (err) {
-      toast.error(err.message);
-      return false;
-    }
-  };
 
   // 파일 업로드
   const uploadFile = async (file, displayName, showToast = true, skipRefresh = false) => {
@@ -418,8 +389,6 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
   return {
     updateReport,
     deleteReport,
-    analyzeReport,
-    publishReport,
     uploadFile,
     startSTT,
     updateSTT,
