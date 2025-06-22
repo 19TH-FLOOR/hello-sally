@@ -205,7 +205,7 @@ export default function ReportsPage() {
     const texts = {
       draft: '초안',
       analyzing: '분석중',
-      completed: '완료'
+      completed: '분석 완료'
     };
     return texts[status] || status;
   };
@@ -316,7 +316,7 @@ export default function ReportsPage() {
             <MenuItem value="">전체</MenuItem>
             <MenuItem value="draft">초안</MenuItem>
             <MenuItem value="analyzing">분석중</MenuItem>
-            <MenuItem value="completed">완료</MenuItem>
+            <MenuItem value="completed">분석 완료</MenuItem>
           </Select>
         </FormControl>
       </Box>

@@ -241,7 +241,7 @@ export default function AudioFileList({
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Chip
-                              label={`STT: ${getSTTStatusText(file.stt_status)}`}
+                              label={`${getSTTStatusText(file.stt_status)}`}
                               color={getSTTStatusColor(file.stt_status)}
                               size="small"
                               sx={{ fontWeight: 500 }}

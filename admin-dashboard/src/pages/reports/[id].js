@@ -54,7 +54,7 @@ const getStatusText = (status) => {
   const texts = {
     draft: '초안',
     analyzing: '분석중',
-    completed: '완료'
+    completed: '분석 완료'
   };
   return texts[status] || status;
 };
@@ -63,7 +63,7 @@ const getSTTStatusText = (status) => {
   const texts = {
     pending: '대기중',
     processing: '처리중',
-    completed: '완료',
+    completed: 'STT 완료',
     failed: '실패'
   };
   return texts[status] || status;
