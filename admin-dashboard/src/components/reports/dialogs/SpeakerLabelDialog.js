@@ -170,7 +170,7 @@ export default function SpeakerLabelDialog({
         )}
       </DialogTitle>
       <DialogContent sx={{ p: 3 }}>
-        <Grid container spacing={3}>
+        <Grid container spacing={3} sx={{ mt: 1 }}>
           {/* 화자 이름 설정 */}
           <Grid item xs={12} md={4}>
             <Paper 
@@ -193,12 +193,12 @@ export default function SpeakerLabelDialog({
                   return (
                     <TextField
                       key={speaker}
-                      label={`화자 ${speaker}`}
+                      label={`${speaker}`}
                       value={speakerName}
                       onChange={(e) => handleLocalSpeakerNameChange(speaker, e.target.value)}
                       fullWidth
                       variant="outlined"
-                      placeholder={`화자 ${speaker}의 이름을 입력하세요`}
+                      placeholder={`${speaker}를 다른 이름으로 변경할 수 있어요`}
                       sx={{
                         '& .MuiInputLabel-root': {
                           color: speakerColor,
