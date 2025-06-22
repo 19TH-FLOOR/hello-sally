@@ -262,38 +262,59 @@ export default function AIPromptDetailPage() {
           p: 4,
           mb: 4,
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        }}
+      >
+        <Link href="/ai-prompts" passHref>
+          <Button 
+            variant="text" 
+            color="primary" 
+            sx={{ mb: 1, color: 'text.secondary' }}
+          >
+            ← AI 프롬프트 목록으로
+          </Button>
+        </Link>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 700,
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: 1
+          }}
+        >
+          AI 프롬프트 상세
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+          프롬프트 정보를 확인하고 수정할 수 있습니다
+        </Typography>
+      </Box>
+
+      {/* 메타데이터 정보 */}
+      <Box 
+        sx={{ 
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 3,
+          p: 3,
+          mb: 3,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center'
         }}
       >
         <Box>
-          <Link href="/ai-prompts" passHref>
-            <Button 
-              variant="text" 
-              color="primary" 
-              sx={{ mb: 1, color: 'text.secondary' }}
-            >
-              ← AI 프롬프트 목록으로
-            </Button>
-          </Link>
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            sx={{ 
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              mb: 1
-            }}
-          >
-            AI 프롬프트 상세
+          <Typography variant="body2" color="text.secondary">
+            생성일: {formatToKoreanDateTime(prompt.created_at)}
           </Typography>
-          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            프롬프트 정보를 확인하고 수정할 수 있습니다
-          </Typography>
+          {prompt.updated_at && prompt.updated_at !== prompt.created_at && (
+            <Typography variant="body2" color="text.secondary">
+              수정일: {formatToKoreanDateTime(prompt.updated_at)}
+            </Typography>
+          )}
         </Box>
         <Box display="flex" gap={1}>
           <Button
@@ -329,27 +350,6 @@ export default function AIPromptDetailPage() {
             {saving ? '저장 중...' : '저장'}
           </Button>
         </Box>
-      </Box>
-
-      {/* 메타데이터 정보 */}
-      <Box 
-        sx={{ 
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 3,
-          p: 3,
-          mb: 3,
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          생성일: {formatToKoreanDateTime(prompt.created_at)}
-        </Typography>
-        {prompt.updated_at && prompt.updated_at !== prompt.created_at && (
-          <Typography variant="body2" color="text.secondary">
-            수정일: {formatToKoreanDateTime(prompt.updated_at)}
-          </Typography>
-        )}
       </Box>
 
       {/* 프롬프트 정보 */}
