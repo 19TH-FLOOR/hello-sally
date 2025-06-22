@@ -10,11 +10,16 @@ import {
   Chip, 
   CircularProgress, 
   IconButton, 
-  Divider 
+  Divider,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   MoreVert as MoreVertIcon,
+  PlayArrow as PlayArrowIcon,
+  SelectAll as SelectAllIcon,
+  CheckBoxOutlineBlank as DeselectIcon,
 } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
 import { formatDuration, formatFileSize } from '../../utils/audioUtils';
@@ -28,8 +33,21 @@ export default function AudioFileList({
   onStartSTT, 
   onMenuClick,
   getSTTStatusText, 
-  getSTTStatusColor 
+  getSTTStatusColor,
+  selectedFileIds = [],
+  onFileSelect,
+  onSelectAll,
+  onDeselectAll,
+  onBatchSTT
 }) {
+  const sttEligibleFiles = report.audio_files?.filter(file => 
+    file.stt_status === 'pending' || file.stt_status === 'failed'
+  ) || [];
+
+  const hasEligibleFiles = sttEligibleFiles.length > 0;
+  const hasSelectedFiles = selectedFileIds.length > 0;
+  const allEligibleSelected = hasEligibleFiles && sttEligibleFiles.every(file => selectedFileIds.includes(file.id));
+
   return (
     <Card
       elevation={0}
@@ -57,208 +75,283 @@ export default function AudioFileList({
           >
             음성 파일 ({report.audio_files?.length || 0}개)
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<UploadIcon />}
-            onClick={onUpload}
-            sx={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
-              }
-            }}
-          >
-            파일 업로드
-          </Button>
-        </Box>
-        
-        {report.audio_files && report.audio_files.length > 0 ? (
-          <List sx={{ p: 0 }}>
-            {report.audio_files.map((file, index) => (
-              <Box key={file.id}>
-                <ListItem
-                  sx={{
-                    px: 0,
-                    py: 2,
-                    borderRadius: 2,
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {hasEligibleFiles && (
+              <>
+                {hasSelectedFiles && (
+                  <Button
+                    variant="contained"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={onBatchSTT}
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+                      boxShadow: '0 4px 20px rgba(255, 107, 107, 0.3)',
+                      fontSize: '0.875rem',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #ff5252 0%, #d63031 100%)',
+                        boxShadow: '0 6px 24px rgba(255, 107, 107, 0.4)',
+                      }
+                    }}
+                  >
+                    일괄 STT ({selectedFileIds.length}개)
+                  </Button>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={allEligibleSelected ? <DeselectIcon /> : <SelectAllIcon />}
+                  onClick={allEligibleSelected ? onDeselectAll : onSelectAll}
+                  sx={{ 
+                    fontSize: '0.75rem',
+                    minWidth: 'auto',
+                    px: 1.5,
                     '&:hover': {
                       backgroundColor: 'rgba(102, 126, 234, 0.04)',
                     }
                   }}
                 >
-                  <ListItemText
-                    primary={
-                      <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
-                          {file.display_name || file.filename}
-                        </Typography>
-                        {file.display_name && file.display_name !== file.filename && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block' }}>
-                            업로드된 파일명: {file.filename}
+                  {allEligibleSelected ? '전체 해제' : '전체 선택'}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="contained"
+              startIcon={<UploadIcon />}
+              onClick={onUpload}
+              sx={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                  boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+                }
+              }}
+            >
+              파일 업로드
+            </Button>
+          </Box>
+        </Box>
+        
+        {hasEligibleFiles && hasSelectedFiles && (
+          <Box sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: 'rgba(255, 107, 107, 0.05)',
+            border: '1px solid rgba(255, 107, 107, 0.2)',
+            borderRadius: 2 
+          }}>
+            <Typography variant="body2" color="text.secondary">
+              💡 {selectedFileIds.length}개 파일이 선택되었습니다. "일괄 STT" 버튼을 클릭하여 동일한 설정으로 STT를 시작할 수 있습니다.
+            </Typography>
+          </Box>
+        )}
+        
+        {report.audio_files && report.audio_files.length > 0 ? (
+          <List sx={{ p: 0 }}>
+            {report.audio_files.map((file, index) => {
+              const isEligible = file.stt_status === 'pending' || file.stt_status === 'failed';
+              const isSelected = selectedFileIds.includes(file.id);
+              
+              return (
+                <Box key={file.id}>
+                  <ListItem
+                    sx={{
+                      px: 0,
+                      py: 2,
+                      borderRadius: 2,
+                      backgroundColor: isSelected ? 'rgba(255, 107, 107, 0.04)' : 'transparent',
+                      border: isSelected ? '1px solid rgba(255, 107, 107, 0.2)' : '1px solid transparent',
+                      '&:hover': {
+                        backgroundColor: isSelected ? 'rgba(255, 107, 107, 0.08)' : 'rgba(102, 126, 234, 0.04)',
+                      }
+                    }}
+                  >
+                    {isEligible && (
+                      <Box sx={{ mr: 1 }}>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={(e) => onFileSelect(file.id, e.target.checked)}
+                          size="small"
+                          sx={{
+                            color: 'rgba(255, 107, 107, 0.6)',
+                            '&.Mui-checked': {
+                              color: '#ff6b6b',
+                            },
+                          }}
+                        />
+                      </Box>
+                    )}
+                    
+                    <ListItemText
+                      primary={
+                        <Box>
+                          <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                            {file.display_name || file.filename}
                           </Typography>
-                        )}
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block' }}>
-                          업로드 일시: {formatToKoreanDateTime(file.uploaded_at)}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            ⏱️ {formatDuration(file.duration)}
-                          </Typography>
-                          {file.file_size && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                              📁 {formatFileSize(file.file_size)}
+                          {file.display_name && file.display_name !== file.filename && (
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block' }}>
+                              업로드된 파일명: {file.filename}
                             </Typography>
                           )}
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block' }}>
+                            업로드 일시: {formatToKoreanDateTime(file.uploaded_at)}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              ⏱️ {formatDuration(file.duration)}
+                            </Typography>
+                            {file.file_size && (
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                📁 {formatFileSize(file.file_size)}
+                              </Typography>
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                    }
-                    secondary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Chip
-                            label={`STT: ${getSTTStatusText(file.stt_status)}`}
-                            color={getSTTStatusColor(file.stt_status)}
-                            size="small"
-                            sx={{ fontWeight: 500 }}
-                          />
-                          {file.stt_status === 'processing' && (
-                            <CircularProgress size={16} />
+                      }
+                      secondary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Chip
+                              label={`STT: ${getSTTStatusText(file.stt_status)}`}
+                              color={getSTTStatusColor(file.stt_status)}
+                              size="small"
+                              sx={{ fontWeight: 500 }}
+                            />
+                            {file.stt_status === 'processing' && (
+                              <CircularProgress size={16} />
+                            )}
+                          </Box>
+                          
+                          {file.stt_status !== 'pending' && (
+                            <Button
+                              onClick={() => onSTTConfig(file)}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                minWidth: 'auto', 
+                                px: 1.5, 
+                                py: 0.5, 
+                                fontSize: '0.75rem',
+                                borderRadius: 1.5,
+                                borderColor: 'primary.main',
+                                color: 'primary.main',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                                }
+                              }}
+                            >
+                              STT 설정
+                            </Button>
+                          )}
+                          
+                          {file.stt_status === 'completed' && (
+                            <>
+                              <Button
+                                onClick={() => onSpeakerLabels(file)}
+                                size="small"
+                                variant="outlined"
+                                sx={{ 
+                                  minWidth: 'auto', 
+                                  px: 1.5, 
+                                  py: 0.5, 
+                                  fontSize: '0.75rem',
+                                  borderRadius: 1.5,
+                                  borderColor: 'secondary.main',
+                                  color: 'secondary.main',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(245, 87, 108, 0.04)',
+                                  }
+                                }}
+                              >
+                                화자 라벨링
+                              </Button>
+                              <Button
+                                onClick={() => onViewSTT(file)}
+                                size="small"
+                                variant="outlined"
+                                sx={{ 
+                                  minWidth: 'auto', 
+                                  px: 1.5, 
+                                  py: 0.5, 
+                                  fontSize: '0.75rem',
+                                  borderRadius: 1.5,
+                                  borderColor: 'success.main',
+                                  color: 'success.main',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(76, 175, 80, 0.04)',
+                                  }
+                                }}
+                              >
+                                STT 결과 편집
+                              </Button>
+                            </>
+                          )}
+                          
+                          {file.stt_status === 'pending' && (
+                            <Button
+                              onClick={() => onSTTConfig(file)}
+                              size="small"
+                              variant="contained"
+                              sx={{ 
+                                minWidth: 'auto', 
+                                px: 1.5, 
+                                py: 0.5, 
+                                fontSize: '0.75rem',
+                                borderRadius: 1.5,
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                '&:hover': {
+                                  background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                                }
+                              }}
+                            >
+                              STT 시작
+                            </Button>
+                          )}
+                          
+                          {file.stt_status === 'failed' && (
+                            <Button
+                              onClick={() => onStartSTT(file.id)}
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              sx={{ 
+                                minWidth: 'auto', 
+                                px: 1.5, 
+                                py: 0.5, 
+                                fontSize: '0.75rem',
+                                borderRadius: 1.5,
+                                '&:hover': {
+                                  backgroundColor: 'rgba(244, 67, 54, 0.04)',
+                                }
+                              }}
+                            >
+                              STT 재시도
+                            </Button>
                           )}
                         </Box>
-                        
-                        {/* STT 관련 버튼들 */}
-                        {/* STT 설정 버튼은 STT가 한 번이라도 실행된 후에만 표시 */}
-                        {file.stt_status !== 'pending' && (
-                          <Button
-                            onClick={() => onSTTConfig(file)}
-                            size="small"
-                            variant="outlined"
-                            sx={{ 
-                              minWidth: 'auto', 
-                              px: 1.5, 
-                              py: 0.5, 
-                              fontSize: '0.75rem',
-                              borderRadius: 1.5,
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                              '&:hover': {
-                                backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                              }
-                            }}
-                          >
-                            STT 설정
-                          </Button>
-                        )}
-                        
-                        {file.stt_status === 'completed' && (
-                          <>
-                            <Button
-                              onClick={() => onSpeakerLabels(file)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ 
-                                minWidth: 'auto', 
-                                px: 1.5, 
-                                py: 0.5, 
-                                fontSize: '0.75rem',
-                                borderRadius: 1.5,
-                                borderColor: 'secondary.main',
-                                color: 'secondary.main',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(245, 87, 108, 0.04)',
-                                }
-                              }}
-                            >
-                              화자 라벨링
-                            </Button>
-                            <Button
-                              onClick={() => onViewSTT(file)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ 
-                                minWidth: 'auto', 
-                                px: 1.5, 
-                                py: 0.5, 
-                                fontSize: '0.75rem',
-                                borderRadius: 1.5,
-                                borderColor: 'success.main',
-                                color: 'success.main',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(76, 175, 80, 0.04)',
-                                }
-                              }}
-                            >
-                              STT 결과 편집
-                            </Button>
-                          </>
-                        )}
-                        
-                        {file.stt_status === 'pending' && (
-                          <Button
-                            onClick={() => onSTTConfig(file)}
-                            size="small"
-                            variant="contained"
-                            sx={{ 
-                              minWidth: 'auto', 
-                              px: 1.5, 
-                              py: 0.5, 
-                              fontSize: '0.75rem',
-                              borderRadius: 1.5,
-                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                              '&:hover': {
-                                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                              }
-                            }}
-                          >
-                            STT 시작
-                          </Button>
-                        )}
-                        
-                        {file.stt_status === 'failed' && (
-                          <Button
-                            onClick={() => onStartSTT(file.id)}
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            sx={{ 
-                              minWidth: 'auto', 
-                              px: 1.5, 
-                              py: 0.5, 
-                              fontSize: '0.75rem',
-                              borderRadius: 1.5,
-                              '&:hover': {
-                                backgroundColor: 'rgba(244, 67, 54, 0.04)',
-                              }
-                            }}
-                          >
-                            STT 재시도
-                          </Button>
-                        )}
-                      </Box>
-                    }
-                  />
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <IconButton
-                      onClick={(event) => onMenuClick(event, file)}
-                      size="small"
-                      sx={{
-                        color: 'text.secondary',
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        }
-                      }}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Box>
-                </ListItem>
-                {index < report.audio_files.length - 1 && (
-                  <Divider sx={{ my: 1, opacity: 0.3 }} />
-                )}
-              </Box>
-            ))}
+                      }
+                    />
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton
+                        onClick={(event) => onMenuClick(event, file)}
+                        size="small"
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          }
+                        }}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Box>
+                  </ListItem>
+                  {index < report.audio_files.length - 1 && (
+                    <Divider sx={{ my: 1, opacity: 0.3 }} />
+                  )}
+                </Box>
+              );
+            })}
           </List>
         ) : (
           <Box 

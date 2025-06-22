@@ -15,9 +15,13 @@ import {
   Switch,
   Radio,
   RadioGroup,
-  CircularProgress
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Chip
 } from '@mui/material';
-import { Settings as SettingsIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
+import { Settings as SettingsIcon, OpenInNew as OpenInNewIcon, Group as GroupIcon } from '@mui/icons-material';
 
 export default function STTConfigDialog({
   open,
@@ -27,11 +31,16 @@ export default function STTConfigDialog({
   onSave,
   onRestart,
   selectedAudioFile,
-  loading = false
+  selectedAudioFiles = [], // 일괄 처리용 다중 파일
+  loading = false,
+  isBatchMode = false // 일괄 모드 여부
 }) {
   if (!sttConfig) {
     return null;
   }
+
+  const isMultipleFiles = isBatchMode && selectedAudioFiles.length > 1;
+  const displayFiles = isMultipleFiles ? selectedAudioFiles : [selectedAudioFile].filter(Boolean);
 
   return (
     <Dialog 
@@ -50,7 +59,9 @@ export default function STTConfigDialog({
     >
       <DialogTitle
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: isMultipleFiles 
+            ? 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)' 
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           fontWeight: 600,
           borderRadius: '12px 12px 0 0',
@@ -60,8 +71,11 @@ export default function STTConfigDialog({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <SettingsIcon />
-          STT 설정 - {selectedAudioFile?.filename}
+          {isMultipleFiles ? <GroupIcon /> : <SettingsIcon />}
+          {isMultipleFiles 
+            ? `일괄 STT 설정 (${selectedAudioFiles.length}개 파일)`
+            : `STT 설정 - ${selectedAudioFile?.filename}`
+          }
         </Box>
         <Button
           variant="outlined"
@@ -89,6 +103,45 @@ export default function STTConfigDialog({
           </Box>
         ) : (
           <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* 일괄 모드일 때 선택된 파일 목록 표시 */}
+            {isMultipleFiles && (
+              <Box sx={{ 
+                p: 2, 
+                border: '1px solid rgba(255, 107, 107, 0.3)', 
+                borderRadius: 2,
+                backgroundColor: 'rgba(255, 107, 107, 0.05)'
+              }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <GroupIcon color="error" />
+                  선택된 파일 ({selectedAudioFiles.length}개)
+                </Typography>
+                <List dense sx={{ maxHeight: 150, overflow: 'auto' }}>
+                  {selectedAudioFiles.map((file, index) => (
+                    <ListItem key={file.id} sx={{ px: 0, py: 0.5 }}>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {file.display_name || file.filename}
+                            </Typography>
+                            <Chip
+                              label={file.stt_status === 'pending' ? '대기중' : '실패'}
+                              color={file.stt_status === 'pending' ? 'default' : 'error'}
+                              size="small"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  💡 모든 선택된 파일에 동일한 STT 설정이 적용됩니다.
+                </Typography>
+              </Box>
+            )}
+
             {/* 모델 설정 */}
             <Box>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary' }}>
@@ -390,9 +443,8 @@ export default function STTConfigDialog({
           취소
         </Button>
         
-        {/* STT 상태에 따라 다른 버튼 표시 */}
-        {selectedAudioFile?.stt_status === 'pending' ? (
-          // 처음 STT 시작하는 경우
+        {/* 일괄 모드일 때는 항상 시작 버튼만 표시 */}
+        {isMultipleFiles ? (
           <Button 
             onClick={onRestart}
             variant="contained"
@@ -400,11 +452,11 @@ export default function STTConfigDialog({
             sx={{
               borderRadius: 2,
               px: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+              boxShadow: '0 4px 20px rgba(255, 107, 107, 0.3)',
               '&:hover': {
-                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+                background: 'linear-gradient(135deg, #ff5252 0%, #d63031 100%)',
+                boxShadow: '0 6px 24px rgba(255, 107, 107, 0.4)',
               },
               '&:disabled': {
                 background: 'rgba(0, 0, 0, 0.12)',
@@ -412,28 +464,11 @@ export default function STTConfigDialog({
               }
             }}
           >
-            {loading ? 'STT 시작 중...' : 'STT 시작'}
+            {loading ? `일괄 STT 시작 중... (${selectedAudioFiles.length}개)` : `일괄 STT 시작 (${selectedAudioFiles.length}개)`}
           </Button>
         ) : (
-          // 이미 STT가 실행된 적이 있는 경우
-          <>
-            <Button 
-              onClick={onSave}
-              variant="outlined"
-              disabled={loading}
-              sx={{
-                borderRadius: 2,
-                px: 3,
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                '&:hover': {
-                  borderColor: 'primary.dark',
-                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                }
-              }}
-            >
-              {loading ? '저장 중...' : '설정 저장'}
-            </Button>
+          /* 단일 파일 모드 버튼들 */
+          selectedAudioFile?.stt_status === 'pending' ? (
             <Button 
               onClick={onRestart}
               variant="contained"
@@ -453,9 +488,50 @@ export default function STTConfigDialog({
                 }
               }}
             >
-              설정 저장 후 STT 재시작
+              {loading ? 'STT 시작 중...' : 'STT 시작'}
             </Button>
-          </>
+          ) : (
+            <>
+              <Button 
+                onClick={onSave}
+                variant="outlined"
+                disabled={loading}
+                sx={{
+                  borderRadius: 2,
+                  px: 3,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                  }
+                }}
+              >
+                {loading ? '저장 중...' : '설정 저장'}
+              </Button>
+              <Button 
+                onClick={onRestart}
+                variant="contained"
+                disabled={loading}
+                sx={{
+                  borderRadius: 2,
+                  px: 3,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                    boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+                  },
+                  '&:disabled': {
+                    background: 'rgba(0, 0, 0, 0.12)',
+                    color: 'rgba(0, 0, 0, 0.26)',
+                  }
+                }}
+              >
+                설정 저장 후 STT 재시작
+              </Button>
+            </>
+          )
         )}
       </DialogActions>
     </Dialog>

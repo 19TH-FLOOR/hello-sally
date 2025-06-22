@@ -111,6 +111,10 @@ export default function ReportDetailPage() {
   });
   const [formLoading, setFormLoading] = useState(false);
 
+  // 일괄 STT 관련 상태 추가
+  const [selectedFileIds, setSelectedFileIds] = useState([]);
+  const [isBatchMode, setIsBatchMode] = useState(false);
+
   // STT 설정 상태 추가
   const [sttConfig, setSttConfig] = useState({
     model_type: 'sommers',
@@ -150,6 +154,92 @@ export default function ReportDetailPage() {
       });
     }
   }, [report]);
+
+  // 일괄 STT 관련 핸들러들
+  const handleFileSelect = (fileId, checked) => {
+    if (checked) {
+      setSelectedFileIds(prev => [...prev, fileId]);
+    } else {
+      setSelectedFileIds(prev => prev.filter(id => id !== fileId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    const eligibleFiles = report.audio_files?.filter(file => 
+      file.stt_status === 'pending' || file.stt_status === 'failed'
+    ) || [];
+    setSelectedFileIds(eligibleFiles.map(file => file.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedFileIds([]);
+  };
+
+  const handleBatchSTT = () => {
+    setIsBatchMode(true);
+    // 기본 설정으로 초기화
+    setSttConfig({
+      model_type: 'sommers',
+      language: 'ko',
+      domain: 'GENERAL',
+      speaker_diarization: true,
+      spk_count: null,  // 자동 감지
+      profanity_filter: false,
+      use_disfluency_filter: true,
+      use_paragraph_splitter: false,
+      paragraph_max_length: null,
+      keywords: []
+    });
+    openDialog('sttConfig');
+  };
+
+  const handleBatchSTTStart = async () => {
+    if (selectedFileIds.length === 0) return;
+    
+    setSttLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      // 각 파일에 대해 순차적으로 STT 시작
+      for (const fileId of selectedFileIds) {
+        try {
+          const success = await actions.restartSTT(fileId, sttConfig);
+          if (success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+          // 각 요청 사이에 약간의 지연 추가
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`파일 ${fileId} STT 시작 실패:`, error);
+          failCount++;
+        }
+      }
+
+      // 결과 메시지 표시
+      if (successCount > 0 && failCount === 0) {
+        toast.success(`일괄 STT가 시작되었습니다. (${successCount}개 파일)`);
+      } else if (successCount > 0 && failCount > 0) {
+        toast.warning(`일부 파일의 STT가 시작되었습니다. (성공: ${successCount}개, 실패: ${failCount}개)`);
+      } else {
+        toast.error('일괄 STT 시작에 실패했습니다.');
+      }
+
+      // 성공한 경우 선택 해제 및 다이얼로그 닫기
+      if (successCount > 0) {
+        setSelectedFileIds([]);
+        setIsBatchMode(false);
+        closeDialog('sttConfig');
+      }
+    } catch (error) {
+      console.error('일괄 STT 처리 중 오류:', error);
+      toast.error('일괄 STT 처리 중 오류가 발생했습니다.');
+    } finally {
+      setSttLoading(false);
+    }
+  };
 
   // 보고서 수정 핸들러
   const handleUpdateReport = async () => {
@@ -265,6 +355,7 @@ export default function ReportDetailPage() {
   };
 
   const handleOpenSTTConfig = async (file) => {
+    setIsBatchMode(false); // 단일 파일 모드로 설정
     setSelectedAudioFile(file);
     setSttLoading(true);
     
@@ -340,16 +431,18 @@ export default function ReportDetailPage() {
     }
   };
 
-  // STT 재시작 핸들러
+  // STT 재시작 핸들러 (단일/일괄 모드 모두 처리)
   const handleRestartSTT = async () => {
-    if (!selectedAudioFile) return;
-    
-    setSttLoading(true);
-    const success = await actions.restartSTT(selectedAudioFile.id, sttConfig);
-    setSttLoading(false);
-    
-    if (success) {
-      closeDialog('sttConfig');
+    if (isBatchMode) {
+      await handleBatchSTTStart();
+    } else if (selectedAudioFile) {
+      setSttLoading(true);
+      const success = await actions.restartSTT(selectedAudioFile.id, sttConfig);
+      setSttLoading(false);
+      
+      if (success) {
+        closeDialog('sttConfig');
+      }
     }
   };
 
@@ -431,6 +524,13 @@ export default function ReportDetailPage() {
     }
   };
 
+  // 다이얼로그 닫기 핸들러 (상태 초기화)
+  const handleCloseSTTConfig = () => {
+    closeDialog('sttConfig');
+    setIsBatchMode(false);
+    setSelectedFileIds([]);
+  };
+
   // 로딩 상태
   if (loading) {
     return (
@@ -463,6 +563,11 @@ export default function ReportDetailPage() {
       </Box>
     );
   }
+
+  // 일괄 STT를 위한 선택된 파일들 정보
+  const selectedAudioFiles = report.audio_files?.filter(file => 
+    selectedFileIds.includes(file.id)
+  ) || [];
 
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
@@ -504,6 +609,12 @@ export default function ReportDetailPage() {
             onMenuClick={handleMenuClick}
             getSTTStatusText={getSTTStatusText}
             getSTTStatusColor={getSTTStatusColor}
+            // 일괄 STT 관련 props 추가
+            selectedFileIds={selectedFileIds}
+            onFileSelect={handleFileSelect}
+            onSelectAll={handleSelectAll}
+            onDeselectAll={handleDeselectAll}
+            onBatchSTT={handleBatchSTT}
           />
         </Grid>
 
@@ -568,13 +679,15 @@ export default function ReportDetailPage() {
 
       <STTConfigDialog
         open={dialogStates.sttConfig}
-        onClose={() => closeDialog('sttConfig')}
+        onClose={handleCloseSTTConfig}
         selectedAudioFile={selectedAudioFile}
+        selectedAudioFiles={selectedAudioFiles}
         sttConfig={sttConfig}
         setSttConfig={setSttConfig}
         onSave={handleSaveSTTConfig}
         onRestart={handleRestartSTT}
         loading={sttLoading}
+        isBatchMode={isBatchMode}
       />
 
       <STTEditDialog
