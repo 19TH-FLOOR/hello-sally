@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 import {
   Box,
@@ -22,13 +24,18 @@ import {
   Switch,
   Alert,
   Pagination,
-  Grid,
-  Card,
-  CardContent,
-  CardActions
+  CircularProgress,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
-  Add as AddIcon
+  Add as AddIcon,
+  MoreVert as MoreVertIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { formatToKoreanDate } from '../../utils/dateUtils';
 import InterpolationHelper from '../../components/reports/InterpolationHelper';
@@ -36,8 +43,8 @@ import InterpolationHelper from '../../components/reports/InterpolationHelper';
 // API 요청은 Next.js 프록시(/api)를 통해 처리
 const API_BASE_URL = '/api';
 
-export default function TemplatesPage() {
-  const [templates, setTemplates] = useState([]);
+export default function AIPromptsPage() {
+  const [prompts, setPrompts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -45,9 +52,11 @@ export default function TemplatesPage() {
   
   // 다이얼로그 상태
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  
+  // 케밥 메뉴 상태
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuPromptId, setMenuPromptId] = useState(null);
   
   // 폼 상태
   const [formData, setFormData] = useState({
@@ -60,11 +69,13 @@ export default function TemplatesPage() {
   // 텍스트 필드 참조
   const promptTextFieldRef = useRef(null);
 
+  const router = useRouter();
+
   useEffect(() => {
-    fetchTemplates();
+    fetchPrompts();
   }, [page]);
 
-  const fetchTemplates = async () => {
+  const fetchPrompts = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -76,7 +87,7 @@ export default function TemplatesPage() {
       if (!response.ok) throw new Error('프롬프트 목록을 불러올 수 없습니다.');
       
       const data = await response.json();
-      setTemplates(data.templates);
+      setPrompts(data.templates);
       setTotalPages(Math.ceil(data.total / 10));
     } catch (err) {
       setError(err.message);
@@ -85,7 +96,7 @@ export default function TemplatesPage() {
     }
   };
 
-  const handleCreateTemplate = async () => {
+  const handleCreatePrompt = async () => {
     if (!formData.name.trim()) return;
     
     try {
@@ -100,33 +111,13 @@ export default function TemplatesPage() {
       setCreateDialogOpen(false);
       setFormData({ name: '', description: '', prompt_content: '', is_default: false });
       toast.success('프롬프트가 생성되었습니다.');
-      fetchTemplates();
+      fetchPrompts();
     } catch (err) {
       toast.error(err.message);
     }
   };
 
-  const handleUpdateTemplate = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/ai-prompts-for-report/${selectedTemplate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      
-      if (!response.ok) throw new Error('프롬프트 수정에 실패했습니다.');
-      
-      setEditDialogOpen(false);
-      setSelectedTemplate(null);
-      setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-      toast.success('프롬프트가 수정되었습니다.');
-      fetchTemplates();
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId) => {
+  const handleDeletePrompt = async (promptId) => {
     toast((t) => (
       <div style={{ 
         display: 'flex', 
@@ -136,7 +127,8 @@ export default function TemplatesPage() {
         padding: '4px'
       }}>
         <span style={{ fontSize: '14px', lineHeight: '1.4' }}>
-          정말로 이 프롬프트를 삭제하시겠습니까?
+          정말로 이 프롬프트를 삭제하시겠습니까?<br/>
+          이 작업은 되돌릴 수 없습니다.
         </span>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           <button
@@ -158,7 +150,7 @@ export default function TemplatesPage() {
           <button
             onClick={() => {
               toast.dismiss(t.id);
-              executeDeleteTemplate(templateId);
+              executeDeletePrompt(promptId);
             }}
             style={{
               background: '#ef4444',
@@ -185,39 +177,64 @@ export default function TemplatesPage() {
     });
   };
 
-  const executeDeleteTemplate = async (templateId) => {
+  const executeDeletePrompt = async (promptId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/ai-prompts-for-report/${templateId}`, {
+      const response = await fetch(`${API_BASE_URL}/ai-prompts-for-report/${promptId}`, {
         method: 'DELETE'
       });
       
       if (!response.ok) throw new Error('프롬프트 삭제에 실패했습니다.');
       
       toast.success('프롬프트가 삭제되었습니다.');
-      fetchTemplates();
+      fetchPrompts();
     } catch (err) {
       toast.error(err.message);
     }
   };
 
-  const handleEditClick = (template) => {
-    setSelectedTemplate(template);
-    setFormData({
-      name: template.name,
-      description: template.description || '',
-      prompt_content: template.prompt_content,
-      is_default: template.is_default
-    });
-    setEditDialogOpen(true);
+  const handleMenuOpen = (event, promptId) => {
+    setAnchorEl(event.currentTarget);
+    setMenuPromptId(promptId);
   };
 
-  const handleViewClick = (template) => {
-    setSelectedTemplate(template);
-    setViewDialogOpen(true);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuPromptId(null);
+  };
+
+  const handleRowClick = (promptId) => {
+    router.push(`/ai-prompts/${promptId}`);
+  };
+
+  const handleMenuAction = (action) => {
+    const prompt = prompts.find(p => p.id === menuPromptId);
+    if (!prompt) return;
+
+    switch (action) {
+      case 'view':
+        router.push(`/ai-prompts/${prompt.id}`);
+        break;
+      case 'edit':
+        router.push(`/ai-prompts/${prompt.id}`);
+        break;
+      case 'delete':
+        handleDeletePrompt(prompt.id);
+        break;
+    }
+    handleMenuClose();
+  };
+
+  const truncateText = (text, maxLength = 100) => {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
   if (loading) {
-    return <Typography>로딩 중...</Typography>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -258,10 +275,7 @@ export default function TemplatesPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => {
-            setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-            setCreateDialogOpen(true);
-          }}
+          onClick={() => setCreateDialogOpen(true)}
           sx={{ 
             background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
             boxShadow: '0 4px 20px rgba(240, 147, 251, 0.3)',
@@ -273,17 +287,18 @@ export default function TemplatesPage() {
             }
           }}
         >
-          새 프롬프트
+          새 프롬프트 생성
         </Button>
       </Box>
 
+      {/* 에러 메시지 */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* 테이블 섹션 */}
+      {/* 프롬프트 테이블 */}
       <TableContainer 
         component={Paper}
         elevation={0}
@@ -300,18 +315,20 @@ export default function TemplatesPage() {
           <TableHead>
             <TableRow sx={{ backgroundColor: 'rgba(240, 147, 251, 0.05)' }}>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>프롬프트명</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>이름</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>설명</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>기본 프롬프트 여부</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>기본 프롬프트</TableCell>
               <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>생성일</TableCell>
-              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>작업</TableCell>
+              <TableCell width="50" sx={{ fontWeight: 600, color: 'text.primary' }}></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {templates.map((template) => (
+            {prompts.map((prompt) => (
               <TableRow 
-                key={template.id}
+                key={prompt.id}
+                onClick={() => handleRowClick(prompt.id)}
                 sx={{ 
+                  cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out',
                   '&:hover': {
                     backgroundColor: 'rgba(240, 147, 251, 0.08)',
@@ -323,54 +340,39 @@ export default function TemplatesPage() {
                   }
                 }}
               >
-                <TableCell>{template.id}</TableCell>
-                <TableCell>{template.name}</TableCell>
+                <TableCell>{prompt.id}</TableCell>
                 <TableCell>
-                  {template.description ? 
-                    template.description.length > 50 ? 
-                      `${template.description.substring(0, 50)}...` : 
-                      template.description 
-                    : '-'}
+                  <Typography variant="subtitle2" fontWeight="medium">
+                    {prompt.name}
+                  </Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={template.is_default ? '기본' : '사용자 정의'}
-                    color={template.is_default ? 'primary' : 'default'}
+                  <Typography variant="body2" color="text.secondary">
+                    {truncateText(prompt.description, 80)}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  {prompt.is_default ? (
+                    <Chip label="기본" color="primary" size="small" />
+                  ) : (
+                    <Chip label="일반" variant="outlined" size="small" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {formatToKoreanDate(prompt.created_at)}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuOpen(e, prompt.id);
+                    }}
                     size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {formatToKoreanDate(template.created_at)}
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Button
-                      onClick={() => handleViewClick(template)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: 'auto', px: 1, py: 0.5, fontSize: '0.75rem' }}
-                    >
-                      보기
-                    </Button>
-                    <Button
-                      onClick={() => handleEditClick(template)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: 'auto', px: 1, py: 0.5, fontSize: '0.75rem' }}
-                    >
-                      수정
-                    </Button>
-                    <Button
-                      onClick={() => handleDeleteTemplate(template.id)}
-                      disabled={template.is_default}
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      sx={{ minWidth: 'auto', px: 1, py: 0.5, fontSize: '0.75rem' }}
-                    >
-                      삭제
-                    </Button>
-                  </Box>
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -378,22 +380,49 @@ export default function TemplatesPage() {
         </Table>
       </TableContainer>
 
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(e, value) => setPage(value)}
-        />
-      </Box>
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(e, newPage) => setPage(newPage)}
+            color="primary"
+          />
+        </Box>
+      )}
 
-      {/* 생성 다이얼로그 */}
-      <Dialog 
-        open={createDialogOpen} 
-        onClose={() => {
-          setCreateDialogOpen(false);
-          setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-        }} 
-        maxWidth="md" 
+      {/* 케밥 메뉴 */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={() => handleMenuAction('view')}>
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>상세 보기</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleMenuAction('edit')}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>수정</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleMenuAction('delete')}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>삭제</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* 새 프롬프트 생성 다이얼로그 */}
+      <Dialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
@@ -414,14 +443,14 @@ export default function TemplatesPage() {
             borderRadius: '12px 12px 0 0'
           }}
         >
-          새 프롬프트 생성
+          새 AI 프롬프트 생성
         </DialogTitle>
         <DialogContent sx={{ p: 3, mt: 2 }}>
           <TextField
             fullWidth
-            label="프롬프트명"
+            label="프롬프트 이름"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
             margin="normal"
             required
             sx={{
@@ -433,12 +462,12 @@ export default function TemplatesPage() {
           />
           <TextField
             fullWidth
+            multiline
+            rows={3}
             label="설명"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             margin="normal"
-            multiline
-            rows={2}
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2,
@@ -452,17 +481,18 @@ export default function TemplatesPage() {
             variant="compact" 
             textFieldRef={promptTextFieldRef}
             formData={formData}
+            sx={{ mt: 2 }}
           />
           
           <TextField
             ref={promptTextFieldRef}
             fullWidth
-            label="프롬프트 내용"
-            value={formData.prompt_content}
-            onChange={(e) => setFormData({ ...formData, prompt_content: e.target.value })}
-            margin="normal"
             multiline
             rows={10}
+            label="프롬프트 내용"
+            value={formData.prompt_content}
+            onChange={(e) => setFormData(prev => ({ ...prev, prompt_content: e.target.value }))}
+            margin="normal"
             required
             placeholder="AI 분석을 위한 프롬프트를 입력하세요..."
             sx={{
@@ -476,7 +506,7 @@ export default function TemplatesPage() {
             control={
               <Switch
                 checked={formData.is_default}
-                onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                onChange={(e) => setFormData(prev => ({ ...prev, is_default: e.target.checked }))}
                 sx={{
                   '& .MuiSwitch-switchBase.Mui-checked': {
                     color: '#f093fb',
@@ -493,10 +523,7 @@ export default function TemplatesPage() {
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2 }}>
           <Button 
-            onClick={() => {
-              setCreateDialogOpen(false);
-              setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-            }}
+            onClick={() => setCreateDialogOpen(false)}
             sx={{
               borderRadius: 2,
               px: 3,
@@ -509,7 +536,7 @@ export default function TemplatesPage() {
             취소
           </Button>
           <Button 
-            onClick={handleCreateTemplate} 
+            onClick={handleCreatePrompt} 
             variant="contained"
             sx={{
               borderRadius: 2,
@@ -526,248 +553,6 @@ export default function TemplatesPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* 수정 다이얼로그 */}
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={() => {
-          setEditDialogOpen(false);
-          setSelectedTemplate(null);
-          setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-        }} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 3,
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
-          }
-        }}
-      >
-        <DialogTitle 
-          sx={{ 
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white',
-            fontWeight: 600,
-            textAlign: 'center',
-            borderRadius: '12px 12px 0 0'
-          }}
-        >
-          프롬프트 수정
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, mt: 2 }}>
-          <TextField
-            fullWidth
-            label="프롬프트명"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            margin="normal"
-            required
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                background: 'rgba(255, 255, 255, 0.8)',
-              }
-            }}
-          />
-          <TextField
-            fullWidth
-            label="설명"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            margin="normal"
-            multiline
-            rows={2}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                background: 'rgba(255, 255, 255, 0.8)',
-              }
-            }}
-          />
-          
-          {/* 인터폴레이션 헬퍼 */}
-          <InterpolationHelper 
-            variant="compact" 
-            textFieldRef={promptTextFieldRef}
-            formData={formData}
-          />
-          
-          <TextField
-            ref={promptTextFieldRef}
-            fullWidth
-            label="프롬프트 내용"
-            value={formData.prompt_content}
-            onChange={(e) => setFormData({ ...formData, prompt_content: e.target.value })}
-            margin="normal"
-            multiline
-            rows={10}
-            required
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                background: 'rgba(255, 255, 255, 0.8)',
-              }
-            }}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formData.is_default}
-                onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': {
-                    color: '#f093fb',
-                  },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: '#f093fb',
-                  },
-                }}
-              />
-            }
-            label="기본 프롬프트로 설정"
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 2 }}>
-          <Button 
-            onClick={() => {
-              setEditDialogOpen(false);
-              setSelectedTemplate(null);
-              setFormData({ name: '', description: '', prompt_content: '', is_default: false });
-            }}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              }
-            }}
-          >
-            취소
-          </Button>
-          <Button 
-            onClick={handleUpdateTemplate} 
-            variant="contained"
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              boxShadow: '0 4px 20px rgba(240, 147, 251, 0.3)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #e879f9 0%, #ef4444 100%)',
-                boxShadow: '0 6px 24px rgba(240, 147, 251, 0.4)',
-              }
-            }}
-          >
-            저장
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 보기 다이얼로그 */}
-      <Dialog 
-        open={viewDialogOpen} 
-        onClose={() => setViewDialogOpen(false)} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 3,
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
-          }
-        }}
-      >
-        <DialogTitle 
-          sx={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            fontWeight: 600,
-            textAlign: 'center',
-            borderRadius: '12px 12px 0 0'
-          }}
-        >
-          프롬프트 상세보기
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, mt: 2 }}>
-          {selectedTemplate && (
-            <Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  프롬프트명
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedTemplate.name}
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  설명
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {selectedTemplate.description || '설명 없음'}
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-                  기본 프롬프트 여부
-                </Typography>
-                <Chip
-                  label={selectedTemplate.is_default ? '기본 템플릿' : '사용자 정의'}
-                  color={selectedTemplate.is_default ? 'primary' : 'default'}
-                  size="small"
-                  sx={{ fontWeight: 500 }}
-                />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
-                  프롬프트 내용
-                </Typography>
-                <Box
-                  sx={{
-                    p: 3,
-                    background: 'rgba(255, 255, 255, 0.8)',
-                    borderRadius: 2,
-                    fontFamily: 'monospace',
-                    whiteSpace: 'pre-wrap',
-                    maxHeight: '300px',
-                    overflow: 'auto',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                  }}
-                >
-                  {selectedTemplate.prompt_content}
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setViewDialogOpen(false)}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-              }
-            }}
-          >
-            닫기
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      
     </Box>
   );
 } 
