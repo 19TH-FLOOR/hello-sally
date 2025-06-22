@@ -134,7 +134,7 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
   };
 
   // 파일 업로드
-  const uploadFile = async (file, displayName) => {
+  const uploadFile = async (file, displayName, showToast = true, skipRefresh = false) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -151,11 +151,20 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
       
       if (!response.ok) throw new Error('파일 업로드에 실패했습니다.');
       
-      toast.success('파일이 성공적으로 업로드되었습니다.');
-      await fetchReportDetail();
+      if (showToast) {
+        toast.success('파일이 성공적으로 업로드되었습니다.');
+      }
+      
+      // skipRefresh가 true이면 fetchReportDetail을 호출하지 않음 (다중 업로드 시)
+      if (!skipRefresh) {
+        await fetchReportDetail();
+      }
+      
       return true;
     } catch (err) {
-      toast.error(err.message);
+      if (showToast) {
+        toast.error(err.message);
+      }
       return false;
     }
   };
@@ -286,18 +295,57 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
 
   // 파일 삭제
   const deleteAudioFile = async (fileId, filename) => {
+    // 파일명이 너무 길면 줄임표로 표시
+    const truncateFilename = (name, maxLength = 40) => {
+      if (name.length <= maxLength) return name;
+      const extension = name.lastIndexOf('.') > 0 ? name.substring(name.lastIndexOf('.')) : '';
+      const nameWithoutExt = extension ? name.substring(0, name.lastIndexOf('.')) : name;
+      const truncatedName = nameWithoutExt.substring(0, maxLength - extension.length - 3) + '...';
+      return truncatedName + extension;
+    };
+
+    const displayFilename = truncateFilename(filename);
+
     return new Promise((resolve) => {
       toast((t) => (
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
           gap: '12px',
-          minWidth: '280px',
-          padding: '4px'
+          minWidth: '320px',
+          maxWidth: '500px',
+          padding: '8px'
         }}>
-          <span style={{ fontSize: '14px', lineHeight: '1.4' }}>
-            "{filename}" 파일을 삭제하시겠습니까?
-          </span>
+          <div style={{ 
+            fontSize: '14px', 
+            lineHeight: '1.5',
+            wordBreak: 'break-word',
+            marginBottom: '4px'
+          }}>
+            <div style={{ marginBottom: '4px' }}>
+              다음 파일을 삭제하시겠습니까?
+            </div>
+            <div style={{ 
+              fontWeight: '600',
+              color: '#374151',
+              backgroundColor: '#f3f4f6',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb'
+            }}>
+              {displayFilename}
+            </div>
+            {filename !== displayFilename && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#6b7280', 
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                전체 파일명: {filename}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => {
@@ -312,8 +360,11 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
                 padding: '8px 16px',
                 cursor: 'pointer',
                 fontSize: '13px',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'background-color 0.2s'
               }}
+              onMouseEnter={(e) => e.target.style.background = '#4b5563'}
+              onMouseLeave={(e) => e.target.style.background = '#6b7280'}
             >
               취소
             </button>
@@ -343,16 +394,23 @@ export const useReportActions = (reportId, fetchReportDetail, startSTTPolling) =
                 padding: '8px 16px',
                 cursor: 'pointer',
                 fontSize: '13px',
-                fontWeight: '500'
+                fontWeight: '500',
+                transition: 'background-color 0.2s'
               }}
+              onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+              onMouseLeave={(e) => e.target.style.background = '#ef4444'}
             >
               삭제
             </button>
           </div>
         </div>
       ), {
-        duration: 5000,
-        style: { minWidth: '300px', padding: '16px' }
+        duration: 8000,
+        style: { 
+          minWidth: '340px',
+          maxWidth: '520px',
+          padding: '16px'
+        }
       });
     });
   };

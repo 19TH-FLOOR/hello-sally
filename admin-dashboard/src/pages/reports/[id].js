@@ -556,7 +556,13 @@ export default function ReportDetailPage() {
 
       <FileUploadDialog
         open={dialogStates.fileUpload}
-        onClose={() => closeDialog('fileUpload')}
+        onClose={() => {
+          closeDialog('fileUpload');
+          // 다이얼로그가 완전히 닫힌 후 새로고침
+          setTimeout(() => {
+            fetchReportDetail();
+          }, 300);
+        }}
         onUpload={actions.uploadFile}
       />
 
