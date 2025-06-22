@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,9 +27,100 @@ export default function SpeakerLabelDialog({
 }) {
   // 컨펌 다이얼로그 상태
   const [showConfirm, setShowConfirm] = useState(false);
+  
+  // 로컬 미리보기 상태
+  const [previewContent, setPreviewContent] = useState('');
+  
+  // 화자별 색상 배열 (최대 10명까지 지원)
+  const speakerColors = [
+    '#2563eb', // blue
+    '#dc2626', // red  
+    '#16a34a', // green
+    '#ca8a04', // yellow
+    '#9333ea', // purple
+    '#c2410c', // orange
+    '#0891b2', // cyan
+    '#be185d', // pink
+    '#65a30d', // lime
+    '#7c2d12', // brown
+  ];
 
   // 고유한 화자 목록 추출
   const uniqueSpeakers = [...new Set(speakerLabels.map(label => label.speaker))].filter(Boolean);
+
+  // 화자별 색상 매핑 생성
+  const getSpeakerColorMap = () => {
+    const colorMap = {};
+    uniqueSpeakers.forEach((speaker, index) => {
+      colorMap[speaker] = speakerColors[index % speakerColors.length];
+    });
+    return colorMap;
+  };
+
+  // 텍스트를 파싱해서 스타일링된 JSX 요소로 변환
+  const parsePreviewContent = (currentSpeakerNames) => {
+    if (!speakerLabels || speakerLabels.length === 0) {
+      return speakerTranscript || '화자 이름을 설정하면 미리보기가 표시됩니다.';
+    }
+
+    const colorMap = getSpeakerColorMap();
+    const parsedElements = [];
+
+    speakerLabels.forEach((label, index) => {
+      const labelSpeaker = label.speaker || "";
+      const text = label.text || "";
+      
+      if (labelSpeaker && text) {
+        const speakerName = currentSpeakerNames[labelSpeaker] || labelSpeaker;
+        const speakerColor = colorMap[labelSpeaker] || '#374151';
+        
+        parsedElements.push(
+          <div key={index} style={{ marginBottom: '8px' }}>
+            <span 
+              style={{ 
+                fontWeight: 'bold',
+                color: speakerColor,
+                backgroundColor: `${speakerColor}15`, // 15% opacity
+                padding: '2px 6px',
+                borderRadius: '4px',
+                marginRight: '8px',
+                border: `1px solid ${speakerColor}30`
+              }}
+            >
+              {speakerName}:
+            </span>
+            <span style={{ color: '#374151' }}>{text}</span>
+          </div>
+        );
+      } else if (text) {
+        parsedElements.push(
+          <div key={index} style={{ marginBottom: '8px', color: '#374151' }}>
+            {text}
+          </div>
+        );
+      }
+    });
+
+    return parsedElements;
+  };
+
+  // 미리보기 업데이트 함수
+  const updatePreview = (currentSpeakerNames) => {
+    const parsedContent = parsePreviewContent(currentSpeakerNames);
+    setPreviewContent(parsedContent);
+  };
+
+  // 화자명 변경 핸들러 (로컬)
+  const handleLocalSpeakerNameChange = (speaker, name) => {
+    const updatedNames = { ...speakerNames, [speaker]: name };
+    onSpeakerNameChange(speaker, name);
+    updatePreview(updatedNames);
+  };
+
+  // props가 변경될 때 미리보기 업데이트
+  useEffect(() => {
+    updatePreview(speakerNames);
+  }, [speakerLabels, speakerNames, speakerTranscript]);
 
   // 저장 버튼 클릭 시 컨펌 다이얼로그 표시
   const handleSaveClick = () => {
@@ -54,7 +145,8 @@ export default function SpeakerLabelDialog({
           backdropFilter: 'blur(20px)',
           borderRadius: 3,
           border: '1px solid rgba(255, 255, 255, 0.2)',
-          height: '90vh',
+          height: 'auto',
+          maxHeight: '90vh',
         }
       }}
     >
@@ -77,15 +169,14 @@ export default function SpeakerLabelDialog({
           </Typography>
         )}
       </DialogTitle>
-      <DialogContent sx={{ p: 3, height: '100%' }}>
-        <Grid container spacing={3} sx={{ height: '100%' }}>
+      <DialogContent sx={{ p: 3 }}>
+        <Grid container spacing={3}>
           {/* 화자 이름 설정 */}
           <Grid item xs={12} md={4}>
             <Paper 
               elevation={0}
               sx={{ 
                 p: 3, 
-                height: '100%', 
                 backgroundColor: 'rgba(102, 126, 234, 0.05)',
                 borderRadius: 2,
                 border: '1px solid rgba(102, 126, 234, 0.1)'
@@ -95,29 +186,70 @@ export default function SpeakerLabelDialog({
                 화자 이름 설정
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {uniqueSpeakers.map((speaker) => (
-                  <TextField
-                    key={speaker}
-                    label={`화자 ${speaker}`}
-                    value={speakerNames[speaker] || ''}
-                    onChange={(e) => onSpeakerNameChange(speaker, e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    placeholder={`화자 ${speaker}의 이름을 입력하세요`}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        backgroundColor: 'white',
-                        '&:hover fieldset': {
-                          borderColor: 'primary.main',
+                {uniqueSpeakers.map((speaker, index) => {
+                  const speakerColor = speakerColors[index % speakerColors.length];
+                  const speakerName = speakerNames[speaker] || '';
+                  
+                  return (
+                    <TextField
+                      key={speaker}
+                      label={`화자 ${speaker}`}
+                      value={speakerName}
+                      onChange={(e) => handleLocalSpeakerNameChange(speaker, e.target.value)}
+                      fullWidth
+                      variant="outlined"
+                      placeholder={`화자 ${speaker}의 이름을 입력하세요`}
+                      sx={{
+                        '& .MuiInputLabel-root': {
+                          color: speakerColor,
+                          fontWeight: 600,
+                          '&.Mui-focused': {
+                            color: speakerColor,
+                          },
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'primary.main',
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          backgroundColor: speakerName ? `${speakerColor}08` : 'white', // 8% opacity when filled
+                          '& fieldset': {
+                            borderColor: `${speakerColor}40`, // 40% opacity for border
+                            borderWidth: '2px',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: `${speakerColor}60`, // 60% opacity on hover
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: speakerColor,
+                            borderWidth: '2px',
+                          },
+                          '& input': {
+                            color: '#374151',
+                            fontWeight: speakerName ? 600 : 400, // Bold when filled
+                          },
                         },
-                      },
-                    }}
-                  />
-                ))}
+                        '& .MuiInputLabel-shrink': {
+                          transform: 'translate(14px, -9px) scale(0.75)',
+                          backgroundColor: 'white',
+                          padding: '0 8px',
+                          borderRadius: '4px',
+                        },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              backgroundColor: speakerColor,
+                              marginRight: 1,
+                              flexShrink: 0,
+                            }}
+                          />
+                        ),
+                      }}
+                    />
+                  );
+                })}
               </Box>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                 화자 이름을 입력하면 우측 미리보기에서 실시간으로 확인할 수 있습니다.
@@ -131,7 +263,6 @@ export default function SpeakerLabelDialog({
               elevation={0}
               sx={{ 
                 p: 3, 
-                height: '100%', 
                 backgroundColor: 'rgba(0, 0, 0, 0.02)',
                 borderRadius: 2,
                 border: '1px solid rgba(0, 0, 0, 0.1)'
@@ -142,19 +273,18 @@ export default function SpeakerLabelDialog({
               </Typography>
               <Box
                 sx={{
-                  height: 'calc(100% - 60px)',
+                  height: '400px', // 고정 높이로 변경
                   overflow: 'auto',
                   p: 2,
                   backgroundColor: 'white',
                   borderRadius: 2,
                   border: '1px solid rgba(0, 0, 0, 0.1)',
-                  fontFamily: 'monospace',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
                   fontSize: '0.875rem',
                   lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap'
                 }}
               >
-                {speakerTranscript || '화자 이름을 설정하면 미리보기가 표시됩니다.'}
+                {previewContent}
               </Box>
             </Paper>
           </Grid>
