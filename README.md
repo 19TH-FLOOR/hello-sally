@@ -92,8 +92,7 @@ hello-sally/
 │   │   └── services/               # 외부 서비스 연동
 │   │       ├── s3.py               # AWS S3 파일 업로드
 │   │       ├── stt.py              # STT API 연동
-│   │       ├── ai_analysis.py      # AI 분석 서비스
-│   │       └── canva.py            # 보고서 디자인 생성
+│   │       └── ai_analysis.py      # AI 분석 서비스
 │   ├── alembic/                    # 데이터베이스 마이그레이션
 │   │   └── versions/               # 마이그레이션 버전 파일들
 │   │       ├── 001_initial_migration.py

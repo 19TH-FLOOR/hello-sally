@@ -8,7 +8,7 @@ import logging
 
 from app.db.session import get_db
 from app.db.models import (
-    Report, AudioFile, Transcript, ReportData, PublishedReport
+    Report, AudioFile, Transcript, ReportData
 )
 from app.schemas.reports import (
     ReportCreate, ReportUpdate, ReportResponse, 
@@ -16,7 +16,6 @@ from app.schemas.reports import (
     AIAnalysisRequest
 )
 from app.services.ai_analysis import ai_analysis_service
-from app.services.canva import canva_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -131,17 +130,6 @@ def delete_report(report_id: int, db: Session = Depends(get_db)):
             detail="보고서를 찾을 수 없습니다."
         )
     
-    # 이미 발행된 보고서가 있는지 확인
-    published_reports = db.query(PublishedReport).filter(
-        PublishedReport.report_id == report_id
-    ).count()
-    
-    if published_reports > 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 발행된 보고서가 있어 삭제할 수 없습니다."
-        )
-    
     db.delete(report)
     db.commit()
     
@@ -160,14 +148,6 @@ def update_report_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="보고서를 찾을 수 없습니다."
-        )
-    
-    # 상태 전환 검증
-    if (report.status == ReportStatus.PUBLISHED 
-        and new_status != ReportStatus.PUBLISHED):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 발행된 보고서의 상태를 변경할 수 없습니다."
         )
     
     report.status = new_status
@@ -326,61 +306,6 @@ def get_analysis_status(report_id: int, db: Session = Depends(get_db)):
     return status_info
 
 
-@router.post("/{report_id}/publish")
-def publish_report(
-    report_id: int,
-    template_id: Optional[str] = None,
-    background_tasks: BackgroundTasks = None,
-    db: Session = Depends(get_db)
-):
-    """Canva를 통한 보고서 발행"""
-    # 보고서 존재 확인
-    report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="보고서를 찾을 수 없습니다."
-        )
-    
-    # 분석 결과 확인
-    latest_analysis = db.query(ReportData).filter(
-        ReportData.report_id == report_id
-    ).order_by(ReportData.generated_at.desc()).first()
-    
-    if not latest_analysis:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="AI 분석 결과가 없습니다."
-        )
-    
-    # 백그라운드에서 Canva 디자인 생성
-    if background_tasks:
-        background_tasks.add_task(
-            run_publish_background,
-            report_id,
-            template_id
-        )
-    
-    return {
-        "message": "보고서 발행이 시작되었습니다.",
-        "report_id": report_id,
-        "status": "publishing"
-    }
-
-
-@router.get("/{report_id}/published-reports")
-def get_published_reports(report_id: int, db: Session = Depends(get_db)):
-    """발행된 보고서 목록 조회"""
-    published_reports = db.query(PublishedReport).filter(
-        PublishedReport.report_id == report_id
-    ).order_by(PublishedReport.published_at.desc()).all()
-    
-    return {
-        "report_id": report_id,
-        "published_reports": published_reports
-    }
-
-
 def run_analysis_background(
     report_id: int, 
     ai_prompt_id: Optional[int] = None,
@@ -414,33 +339,6 @@ def run_analysis_background(
             db.commit()
         
         logger.error(f"AI 분석 백그라운드 오류: {str(e)}")
-        raise
-    finally:
-        db.close()
-
-
-def run_publish_background(report_id: int, template_id: Optional[str] = None):
-    """백그라운드에서 Canva 발행 실행"""
-    from app.db.session import SessionLocal
-    
-    db = SessionLocal()
-    try:
-        # Canva 디자인 생성
-        result = canva_service.create_report_design(
-            report_id=report_id,
-            template_id=template_id
-        )
-        
-        # 보고서 상태를 published로 변경
-        report = db.query(Report).filter(Report.id == report_id).first()
-        if report:
-            report.status = ReportStatus.PUBLISHED
-            db.commit()
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Canva 발행 백그라운드 오류: {str(e)}")
         raise
     finally:
         db.close() 

@@ -196,8 +196,7 @@ export default function ReportsPage() {
     const colors = {
       draft: 'default',
       analyzing: 'warning',
-      completed: 'info',
-      published: 'success'
+      completed: 'info'
     };
     return colors[status] || 'default';
   };
@@ -206,8 +205,7 @@ export default function ReportsPage() {
     const texts = {
       draft: '초안',
       analyzing: '분석중',
-      completed: '완료',
-      published: '발행됨'
+      completed: '완료'
     };
     return texts[status] || status;
   };
@@ -319,7 +317,6 @@ export default function ReportsPage() {
             <MenuItem value="draft">초안</MenuItem>
             <MenuItem value="analyzing">분석중</MenuItem>
             <MenuItem value="completed">완료</MenuItem>
-            <MenuItem value="published">발행됨</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -514,7 +511,6 @@ export default function ReportsPage() {
       >
         <MenuItem 
           onClick={() => handleDeleteReport(menuReportId)}
-          disabled={reports.find(r => r.id === menuReportId)?.status === 'published'}
         >
           <ListItemIcon>
             <DeleteIcon fontSize="small" />

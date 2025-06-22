@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Text, Boolean, ForeignKey, JSON
+    Column, Integer, String, DateTime, Text, Boolean, ForeignKey, JSON, Float
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -14,25 +14,17 @@ class Report(Base):
     title = Column(String(255), nullable=False)
     parent_name = Column(String(100), nullable=True)
     child_name = Column(String(100), nullable=True)
-    status = Column(String(50), default="draft")  # draft, analyzing, completed, published
-    user_id = Column(Integer, nullable=True)  # 향후 사용자 인증 시스템 대비
+    status = Column(String(50), default="draft")  # draft, analyzing, completed
+    user_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(
-        DateTime, 
-        default=datetime.datetime.utcnow, 
-        onupdate=datetime.datetime.utcnow
-    )
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     
     # Relationships
     audio_files = relationship(
         "AudioFile", back_populates="report", cascade="all, delete-orphan"
     )
     report_data = relationship(
-        "ReportData", back_populates="report", cascade="all, delete-orphan",
-        order_by="ReportData.generated_at.desc()"
-    )
-    published_reports = relationship(
-        "PublishedReport", back_populates="report", cascade="all, delete-orphan"
+        "ReportData", back_populates="report", cascade="all, delete-orphan"
     )
 
 
@@ -117,18 +109,6 @@ class ReportData(Base):
     # Relationships
     report = relationship("Report", back_populates="report_data")
     ai_prompt = relationship("AIPromptForReport", back_populates="report_data")
-
-
-class PublishedReport(Base):
-    __tablename__ = "published_reports"
-    id = Column(Integer, primary_key=True, index=True)
-    report_id = Column(Integer, ForeignKey("reports.id"), nullable=False)
-    canva_design_id = Column(String(255), nullable=True)
-    pdf_url = Column(String(500), nullable=True)
-    published_at = Column(DateTime, default=datetime.datetime.utcnow)
-    
-    # Relationships
-    report = relationship("Report", back_populates="published_reports")
 
 
 class STTConfig(Base):

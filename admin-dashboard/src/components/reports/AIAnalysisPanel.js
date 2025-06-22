@@ -344,8 +344,7 @@ function getStatusText(status) {
   const statusMap = {
     'draft': '초안',
     'analyzing': '분석중',
-    'completed': '완료',
-    'published': '발행됨'
+    'completed': '완료'
   };
   return statusMap[status] || status;
 } 

@@ -8,8 +8,10 @@ import {
   Menu,
   MenuItem,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Button
 } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import Link from 'next/link';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
 
@@ -22,7 +24,6 @@ import ReportHeader from '../../components/reports/ReportHeader';
 import ReportBasicInfo from '../../components/reports/ReportBasicInfo';
 import AudioFileList from '../../components/reports/AudioFileList';
 import AnalysisResults from '../../components/reports/AnalysisResults';
-import PublishedReports from '../../components/reports/PublishedReports';
 import AIAnalysisPanel from '../../components/reports/AIAnalysisPanel';
 
 // 다이얼로그 컴포넌트들
@@ -43,8 +44,7 @@ const getStatusColor = (status) => {
   const colors = {
     draft: 'default',
     analyzing: 'warning',
-    completed: 'info',
-    published: 'success'
+    completed: 'info'
   };
   return colors[status] || 'default';
 };
@@ -53,8 +53,7 @@ const getStatusText = (status) => {
   const texts = {
     draft: '초안',
     analyzing: '분석중',
-    completed: '완료',
-    published: '발행됨'
+    completed: '완료'
   };
   return texts[status] || status;
 };
@@ -620,11 +619,6 @@ export default function ReportDetailPage() {
             report={report} 
             onReportUpdate={fetchReportDetail}
           />
-        </Grid>
-
-        {/* 발행된 보고서 */}
-        <Grid item xs={12}>
-          <PublishedReports report={report} />
         </Grid>
       </Grid>
 

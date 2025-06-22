@@ -8,7 +8,6 @@ class ReportStatus(str, Enum):
     DRAFT = "draft"
     ANALYZING = "analyzing"
     COMPLETED = "completed"
-    PUBLISHED = "published"
 
 
 # Base 스키마
@@ -149,29 +148,10 @@ class ReportDataResponse(ReportDataBase):
         from_attributes = True
 
 
-# 최종 보고서 스키마
-class PublishedReportBase(BaseModel):
-    canva_design_id: Optional[str] = None
-    pdf_url: Optional[str] = None
-
-
-class PublishedReportResponse(PublishedReportBase):
-    id: int
-    report_id: int
-    published_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
 # 상세 보고서 응답 (관계 포함)
 class ReportDetailResponse(ReportResponse):
-    audio_files: List[AudioFileResponse] = []
-    report_data: List[ReportDataResponse] = []
-    published_reports: List[PublishedReportResponse] = []
-    
-    class Config:
-        from_attributes = True
+    audio_files: List["AudioFileResponse"] = []
+    report_data: List["ReportDataResponse"] = []
 
 
 # AI 분석 요청 스키마
