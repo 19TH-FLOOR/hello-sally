@@ -141,14 +141,14 @@ class STTConfig(Base):
     language_candidates = Column(JSON, nullable=True)  # 언어 감지 후보군
     
     # 화자 분리 설정
-    speaker_diarization = Column(Boolean, default=False)
-    spk_count = Column(Integer, nullable=True)  # 화자 수 (1-10)
+    speaker_diarization = Column(Boolean, default=True)
+    spk_count = Column(Integer, nullable=True)  # 화자 수 (1-10), None이면 자동 감지
     
     # 필터 설정
     profanity_filter = Column(Boolean, default=False)
     use_disfluency_filter = Column(Boolean, default=True)  # 간투어 필터
-    use_paragraph_splitter = Column(Boolean, default=True)
-    paragraph_max_length = Column(Integer, default=50)
+    use_paragraph_splitter = Column(Boolean, default=False)
+    paragraph_max_length = Column(Integer, nullable=True)
     
     # 기타 설정
     domain = Column(String(20), default="GENERAL")  # GENERAL, CALL

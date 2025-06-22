@@ -279,8 +279,10 @@ class ReturnZeroSTTService:
                 # 문단 나누기 설정
                 if config.get("use_paragraph_splitter") is not None:
                     default_config["use_paragraph_splitter"] = config["use_paragraph_splitter"]
-                    if config.get("paragraph_max_length"):
-                        default_config["paragraph_splitter"]["max"] = config["paragraph_max_length"]
+                    # paragraph_max_length가 None이 아닐 때만 포함
+                    paragraph_max_length = config.get("paragraph_max_length")
+                    if paragraph_max_length is not None:
+                        default_config["paragraph_splitter"]["max"] = paragraph_max_length
                 
                 # 도메인 설정
                 if config.get("domain"):
@@ -293,9 +295,14 @@ class ReturnZeroSTTService:
                 # 화자 분리 설정 (리턴제로 API 스펙에 맞춤)
                 if config.get("speaker_diarization"):
                     default_config["use_diarization"] = True
-                    default_config["diarization"] = {
-                        "spk_count": config.get("spk_count", 2)  # 화자 수 설정
-                    }
+                    diarization_config = {}
+                    
+                    # spk_count가 None이 아닐 때만 포함 (자동 감지를 위해)
+                    spk_count = config.get("spk_count")
+                    if spk_count is not None:
+                        diarization_config["spk_count"] = spk_count
+                    
+                    default_config["diarization"] = diarization_config
             
             logger.info(f"STT 설정: {default_config}")
             

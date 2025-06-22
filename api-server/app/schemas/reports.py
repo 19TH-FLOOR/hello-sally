@@ -70,12 +70,12 @@ class STTConfigBase(BaseModel):
         None, 
         description="언어 감지 후보군 (whisper 모델이고 language가 detect 또는 multi일 때만 적용)"
     )
-    speaker_diarization: bool = False
-    spk_count: Optional[int] = Field(None, ge=1, le=10, description="화자 수 (1-10)")
+    speaker_diarization: bool = True
+    spk_count: Optional[int] = Field(None, ge=1, le=10, description="화자 수 (1-10), None이면 자동 감지")
     profanity_filter: bool = False
     use_disfluency_filter: bool = True  # 간투어 필터
-    use_paragraph_splitter: bool = True
-    paragraph_max_length: int = Field(50, ge=1, description="문단 최대 길이")
+    use_paragraph_splitter: bool = False
+    paragraph_max_length: Optional[int] = Field(None, ge=1, description="문단 최대 길이")
     domain: str = "GENERAL"  # GENERAL, CALL
     keywords: Optional[List[str]] = None  # 키워드 부스팅
 

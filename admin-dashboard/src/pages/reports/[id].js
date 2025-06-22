@@ -116,12 +116,12 @@ export default function ReportDetailPage() {
     model_type: 'sommers',
     language: 'ko',
     domain: 'GENERAL',
-    speaker_diarization: false,
-    spk_count: 2,
+    speaker_diarization: true,
+    spk_count: null,  // 자동 감지
     profanity_filter: false,
     use_disfluency_filter: true,
-    use_paragraph_splitter: true,
-    paragraph_max_length: 50,
+    use_paragraph_splitter: false,
+    paragraph_max_length: null,
     keywords: []
   });
   const [sttLoading, setSttLoading] = useState(false);
@@ -281,12 +281,12 @@ export default function ReportDetailPage() {
         model_type: 'sommers',
         language: 'ko',
         domain: 'GENERAL',
-        speaker_diarization: false,
-        spk_count: 2,
+        speaker_diarization: true,
+        spk_count: null,  // 자동 감지
         profanity_filter: false,
         use_disfluency_filter: true,
-        use_paragraph_splitter: true,
-        paragraph_max_length: 50,
+        use_paragraph_splitter: false,
+        paragraph_max_length: null,
         keywords: []
       });
     } finally {

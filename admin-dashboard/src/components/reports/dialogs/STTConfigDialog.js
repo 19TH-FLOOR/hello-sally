@@ -13,6 +13,8 @@ import {
   MenuItem,
   FormControlLabel,
   Switch,
+  Radio,
+  RadioGroup,
   CircularProgress
 } from '@mui/material';
 import { Settings as SettingsIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
@@ -178,21 +180,64 @@ export default function STTConfigDialog({
               
               {sttConfig.speaker_diarization && (
                 <Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
                     화자 수 설정
                   </Typography>
-                  <FormControl fullWidth>
-                    <InputLabel>화자 수</InputLabel>
-                    <Select
-                      value={sttConfig.spk_count}
-                      label="화자 수"
-                      onChange={(e) => setSttConfig({ ...sttConfig, spk_count: parseInt(e.target.value) })}
-                      sx={{ borderRadius: 2 }}
+                  <FormControl component="fieldset">
+                    <RadioGroup
+                      value={sttConfig.spk_count === null || sttConfig.spk_count === undefined ? 'auto' : 'manual'}
+                      onChange={(e) => {
+                        if (e.target.value === 'auto') {
+                          setSttConfig({ ...sttConfig, spk_count: null });
+                        } else {
+                          setSttConfig({ ...sttConfig, spk_count: 2 });
+                        }
+                      }}
+                      sx={{ gap: 1 }}
                     >
-                      <MenuItem value={2}>2</MenuItem>
-                      <MenuItem value={3}>3</MenuItem>
-                      <MenuItem value={4}>4</MenuItem>
-                    </Select>
+                      <FormControlLabel 
+                        value="auto" 
+                        control={<Radio size="small" />} 
+                        label={
+                          <Box>
+                            <Typography variant="body2">자동 감지</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              AI가 자동으로 화자 수를 감지합니다
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      <FormControlLabel 
+                        value="manual" 
+                        control={<Radio size="small" />} 
+                        label={
+                          <Box>
+                            <Typography variant="body2">수동 지정</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              화자 수를 직접 지정합니다
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </RadioGroup>
+                    
+                    {sttConfig.spk_count !== null && sttConfig.spk_count !== undefined && (
+                      <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel>화자 수</InputLabel>
+                        <Select
+                          value={sttConfig.spk_count}
+                          label="화자 수"
+                          onChange={(e) => setSttConfig({ ...sttConfig, spk_count: parseInt(e.target.value) })}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value={2}>2명</MenuItem>
+                          <MenuItem value={3}>3명</MenuItem>
+                          <MenuItem value={4}>4명</MenuItem>
+                          <MenuItem value={5}>5명</MenuItem>
+                          <MenuItem value={6}>6명</MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
                   </FormControl>
                 </Box>
               )}
@@ -328,44 +373,74 @@ export default function STTConfigDialog({
         >
           취소
         </Button>
-        <Button 
-          onClick={onSave}
-          variant="outlined"
-          disabled={loading}
-          sx={{
-            borderRadius: 2,
-            px: 3,
-            borderColor: 'primary.main',
-            color: 'primary.main',
-            '&:hover': {
-              borderColor: 'primary.dark',
-              backgroundColor: 'rgba(102, 126, 234, 0.04)',
-            }
-          }}
-        >
-          {loading ? '저장 중...' : '설정 저장'}
-        </Button>
-        <Button 
-          onClick={onRestart}
-          variant="contained"
-          disabled={loading}
-          sx={{
-            borderRadius: 2,
-            px: 3,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-              boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
-            },
-            '&:disabled': {
-              background: 'rgba(0, 0, 0, 0.12)',
-              color: 'rgba(0, 0, 0, 0.26)',
-            }
-          }}
-        >
-          설정 저장 후 STT 재시작
-        </Button>
+        
+        {/* STT 상태에 따라 다른 버튼 표시 */}
+        {selectedAudioFile?.stt_status === 'pending' ? (
+          // 처음 STT 시작하는 경우
+          <Button 
+            onClick={onRestart}
+            variant="contained"
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+              },
+              '&:disabled': {
+                background: 'rgba(0, 0, 0, 0.12)',
+                color: 'rgba(0, 0, 0, 0.26)',
+              }
+            }}
+          >
+            {loading ? 'STT 시작 중...' : 'STT 시작'}
+          </Button>
+        ) : (
+          // 이미 STT가 실행된 적이 있는 경우
+          <>
+            <Button 
+              onClick={onSave}
+              variant="outlined"
+              disabled={loading}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                borderColor: 'primary.main',
+                color: 'primary.main',
+                '&:hover': {
+                  borderColor: 'primary.dark',
+                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                }
+              }}
+            >
+              {loading ? '저장 중...' : '설정 저장'}
+            </Button>
+            <Button 
+              onClick={onRestart}
+              variant="contained"
+              disabled={loading}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                  boxShadow: '0 6px 24px rgba(102, 126, 234, 0.4)',
+                },
+                '&:disabled': {
+                  background: 'rgba(0, 0, 0, 0.12)',
+                  color: 'rgba(0, 0, 0, 0.26)',
+                }
+              }}
+            >
+              설정 저장 후 STT 재시작
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );

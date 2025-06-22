@@ -129,25 +129,28 @@ export default function AudioFileList({
                         </Box>
                         
                         {/* STT 관련 버튼들 */}
-                        <Button
-                          onClick={() => onSTTConfig(file)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ 
-                            minWidth: 'auto', 
-                            px: 1.5, 
-                            py: 0.5, 
-                            fontSize: '0.75rem',
-                            borderRadius: 1.5,
-                            borderColor: 'primary.main',
-                            color: 'primary.main',
-                            '&:hover': {
-                              backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                            }
-                          }}
-                        >
-                          STT 설정
-                        </Button>
+                        {/* STT 설정 버튼은 STT가 한 번이라도 실행된 후에만 표시 */}
+                        {file.stt_status !== 'pending' && (
+                          <Button
+                            onClick={() => onSTTConfig(file)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ 
+                              minWidth: 'auto', 
+                              px: 1.5, 
+                              py: 0.5, 
+                              fontSize: '0.75rem',
+                              borderRadius: 1.5,
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              '&:hover': {
+                                backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                              }
+                            }}
+                          >
+                            STT 설정
+                          </Button>
+                        )}
                         
                         {file.stt_status === 'completed' && (
                           <>
@@ -194,7 +197,7 @@ export default function AudioFileList({
                         
                         {file.stt_status === 'pending' && (
                           <Button
-                            onClick={() => onStartSTT(file.id)}
+                            onClick={() => onSTTConfig(file)}
                             size="small"
                             variant="contained"
                             sx={{ 

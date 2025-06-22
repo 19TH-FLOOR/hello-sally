@@ -424,12 +424,12 @@ def get_stt_config(file_id: int, db: Session = Depends(get_db)):
             "model_type": "sommers",
             "language": "ko",
             "language_candidates": None,
-            "speaker_diarization": False,
-            "spk_count": 2,
+            "speaker_diarization": True,
+            "spk_count": None,  # 자동 감지
             "profanity_filter": False,
             "use_disfluency_filter": True,
-            "use_paragraph_splitter": True,
-            "paragraph_max_length": 50,
+            "use_paragraph_splitter": False,
+            "paragraph_max_length": None,
             "domain": "GENERAL",
             "keywords": None
         }
