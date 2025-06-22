@@ -71,7 +71,9 @@ class STTConfigBase(BaseModel):
         description="언어 감지 후보군 (whisper 모델이고 language가 detect 또는 multi일 때만 적용)"
     )
     speaker_diarization: bool = True
-    spk_count: Optional[int] = Field(None, ge=1, le=10, description="화자 수 (1-10), None이면 자동 감지")
+    spk_count: Optional[int] = Field(
+        None, ge=2, description="화자 수 (2 이상), None이면 자동 감지"
+    )
     profanity_filter: bool = False
     use_disfluency_filter: bool = True  # 간투어 필터
     use_paragraph_splitter: bool = False
@@ -89,7 +91,7 @@ class STTConfigUpdate(BaseModel):
     language: Optional[str] = None
     language_candidates: Optional[List[str]] = None
     speaker_diarization: Optional[bool] = None
-    spk_count: Optional[int] = Field(None, ge=1, le=10)
+    spk_count: Optional[int] = Field(None, ge=2)
     profanity_filter: Optional[bool] = None
     use_disfluency_filter: Optional[bool] = None
     use_paragraph_splitter: Optional[bool] = None

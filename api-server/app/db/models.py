@@ -142,7 +142,7 @@ class STTConfig(Base):
     
     # 화자 분리 설정
     speaker_diarization = Column(Boolean, default=True)
-    spk_count = Column(Integer, nullable=True)  # 화자 수 (1-10), None이면 자동 감지
+    spk_count = Column(Integer, nullable=True)  # 화자 수 (1 이상), None이면 자동 감지
     
     # 필터 설정
     profanity_filter = Column(Boolean, default=False)

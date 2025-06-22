@@ -222,21 +222,37 @@ export default function STTConfigDialog({
                     </RadioGroup>
                     
                     {sttConfig.spk_count !== null && sttConfig.spk_count !== undefined && (
-                      <FormControl fullWidth sx={{ mt: 2 }}>
-                        <InputLabel>화자 수</InputLabel>
-                        <Select
-                          value={sttConfig.spk_count}
-                          label="화자 수"
-                          onChange={(e) => setSttConfig({ ...sttConfig, spk_count: parseInt(e.target.value) })}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value={2}>2명</MenuItem>
-                          <MenuItem value={3}>3명</MenuItem>
-                          <MenuItem value={4}>4명</MenuItem>
-                          <MenuItem value={5}>5명</MenuItem>
-                          <MenuItem value={6}>6명</MenuItem>
-                        </Select>
-                      </FormControl>
+                      <TextField
+                        fullWidth
+                        label="화자 수"
+                        type="number"
+                        value={sttConfig.spk_count || ''}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!isNaN(value) && value >= 2) {
+                            setSttConfig({ ...sttConfig, spk_count: value });
+                          } else if (e.target.value === '') {
+                            setSttConfig({ ...sttConfig, spk_count: null });
+                          }
+                        }}
+                        inputProps={{
+                          min: 2,
+                          step: 1
+                        }}
+                        helperText="2 이상의 화자 수를 입력하세요"
+                        sx={{ 
+                          mt: 2,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            '&:hover fieldset': {
+                              borderColor: 'primary.main',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: 'primary.main',
+                            },
+                          },
+                        }}
+                      />
                     )}
                   </FormControl>
                 </Box>
@@ -289,7 +305,7 @@ export default function STTConfigDialog({
                     fullWidth
                     label="문단 최대 길이"
                     type="number"
-                    value={sttConfig.paragraph_max_length}
+                    value={sttConfig.paragraph_max_length || 50}
                     onChange={(e) => setSttConfig({ ...sttConfig, paragraph_max_length: parseInt(e.target.value) })}
                     sx={{ 
                       mt: 1,
