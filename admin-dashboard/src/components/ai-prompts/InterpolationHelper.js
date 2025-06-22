@@ -67,7 +67,7 @@ export default function InterpolationHelper({
           // API 실패 시 기본값 사용
           const defaultVariables = [
             {
-              variable: '{{conversation_content}}',
+              variable: '{{audio_text}}',
               description: '모든 오디오 파일의 STT 결과를 결합한 전체 대화 내용',
               type: 'string',
               example: '부모: 안녕하세요\\n아이: 안녕하세요\\n부모: 오늘 뭐 했어?\\n아이: 놀았어요',
@@ -78,7 +78,7 @@ export default function InterpolationHelper({
               ]
             },
             {
-              variable: '{{conversation_duration}}',
+              variable: '{{audio_duration}}',
               description: '모든 오디오 파일의 총 재생 시간 (초 단위)',
               type: 'number',
               example: '180',
@@ -99,7 +99,7 @@ export default function InterpolationHelper({
         // 오류 시 기본값 사용
         const defaultVariables = [
           {
-            variable: '{{conversation_content}}',
+            variable: '{{audio_text}}',
             description: '모든 오디오 파일의 STT 결과를 결합한 전체 대화 내용',
             type: 'string',
             example: '부모: 안녕하세요\\n아이: 안녕하세요\\n부모: 오늘 뭐 했어?\\n아이: 놀았어요',
@@ -110,7 +110,7 @@ export default function InterpolationHelper({
             ]
           },
           {
-            variable: '{{conversation_duration}}',
+            variable: '{{audio_duration}}',
             description: '모든 오디오 파일의 총 재생 시간 (초 단위)',
             type: 'number',
             example: '180',
@@ -285,9 +285,17 @@ export default function InterpolationHelper({
               onClick={() => handleVariableClick(item.variable)}
               sx={{ 
                 cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
                 '&:hover': {
-                  backgroundColor: 'primary.light',
-                  color: 'white'
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  borderColor: 'primary.main',
+                  color: 'primary.dark',
+                  fontWeight: 'bold',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
+                  '& .MuiChip-icon': {
+                    color: 'primary.main'
+                  }
                 }
               }}
             />
@@ -339,13 +347,24 @@ export default function InterpolationHelper({
                     variant="body2" 
                     sx={{ 
                       fontFamily: 'monospace',
-                      backgroundColor: 'grey.100',
-                      padding: '4px 8px',
-                      borderRadius: 1,
+                      backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                      color: 'primary.dark',
+                      padding: '6px 10px',
+                      borderRadius: 1.5,
                       display: 'inline-block',
                       fontSize: '0.85rem',
-                      fontWeight: 500
+                      fontWeight: 600,
+                      border: '1px solid rgba(102, 126, 234, 0.15)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: 'rgba(102, 126, 234, 0.15)',
+                        fontWeight: 'bold',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)'
+                      }
                     }}
+                    onClick={() => handleVariableClick(item.variable)}
                   >
                     {item.variable}
                   </Typography>
@@ -435,11 +454,12 @@ export default function InterpolationHelper({
                   sx={{ 
                     fontWeight: 600,
                     fontFamily: 'monospace',
-                    backgroundColor: 'primary.light',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: 1,
-                    fontSize: '0.9rem'
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    color: 'primary.dark',
+                    padding: '6px 12px',
+                    borderRadius: 2,
+                    fontSize: '0.9rem',
+                    border: '1px solid rgba(102, 126, 234, 0.2)'
                   }}
                 >
                   {item.variable}
@@ -489,7 +509,7 @@ export default function InterpolationHelper({
                   }}
                 >
                   <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
-                    {item.variable === '{{conversation_content}}' ? 
+                    {item.variable === '{{audio_text}}' ? 
                       `다음 대화를 분석해주세요:\n\n${item.variable}\n\n위 대화에서 주요 키워드를 추출해주세요.` :
                       `대화 시간: ${item.variable}초\n\n{# 조건문 예시 #}\n{% if ${item.variable} > 300 %}\n긴 대화입니다.\n{% else %}\n짧은 대화입니다.\n{% endif %}`
                     }

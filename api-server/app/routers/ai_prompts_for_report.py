@@ -171,7 +171,7 @@ def get_interpolation_variables():
     """인터폴레이션 변수 정보 조회"""
     variables = [
         {
-            "variable": "{{conversation_content}}",
+            "variable": "{{audio_text}}",
             "description": "모든 오디오 파일의 STT 결과를 결합한 전체 대화 내용",
             "type": "string",
             "example": "부모: 안녕하세요\\n아이: 안녕하세요\\n부모: 오늘 뭐 했어?\\n아이: 놀았어요",
@@ -182,7 +182,7 @@ def get_interpolation_variables():
             ]
         },
         {
-            "variable": "{{conversation_duration}}",
+            "variable": "{{audio_duration}}",
             "description": "모든 오디오 파일의 총 재생 시간 (초 단위)",
             "type": "number",
             "example": "180",

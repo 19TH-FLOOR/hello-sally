@@ -49,10 +49,10 @@ class AIAnalysisService:
         
         # 인터폴레이션 실행 - ai-research 예제와 동일한 방식
         interpolated = prompt_template.replace(
-            "{{conversation_content}}", conversation_content
+            "{{audio_text}}", conversation_content
         )
         interpolated = interpolated.replace(
-            "{{conversation_duration}}", duration_text
+            "{{audio_duration}}", duration_text
         )
         
         # JSON 모드 사용을 위해 JSON 형식 요청 추가

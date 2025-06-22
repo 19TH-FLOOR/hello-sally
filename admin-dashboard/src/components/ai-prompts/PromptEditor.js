@@ -280,9 +280,17 @@ const PromptEditor = forwardRef(({
                   onClick={() => handleVariableClick(variable)}
                   sx={{
                     cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      backgroundColor: 'primary.light',
-                      color: 'white'
+                      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                      borderColor: 'primary.main',
+                      color: 'primary.dark',
+                      fontWeight: 'bold',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
+                      '& .MuiChip-icon': {
+                        color: 'primary.main'
+                      }
                     }
                   }}
                 />
@@ -357,9 +365,17 @@ export const UsedVariables = ({ value = '', interpolationVariables = [], onVaria
               onClick={() => handleVariableClick(variable)}
               sx={{
                 cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
                 '&:hover': {
-                  backgroundColor: 'primary.light',
-                  color: 'white'
+                  backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                  borderColor: 'primary.main',
+                  color: 'primary.dark',
+                  fontWeight: 'bold',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
+                  '& .MuiChip-icon': {
+                    color: 'primary.main'
+                  }
                 }
               }}
             />
