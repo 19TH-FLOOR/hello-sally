@@ -211,12 +211,6 @@ export default function AIPromptsPage() {
     if (!prompt) return;
 
     switch (action) {
-      case 'view':
-        router.push(`/ai-prompts/${prompt.id}`);
-        break;
-      case 'edit':
-        router.push(`/ai-prompts/${prompt.id}`);
-        break;
       case 'delete':
         handleDeletePrompt(prompt.id);
         break;
@@ -398,18 +392,6 @@ export default function AIPromptsPage() {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleMenuAction('view')}>
-          <ListItemIcon>
-            <VisibilityIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>상세 보기</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleMenuAction('edit')}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>수정</ListItemText>
-        </MenuItem>
         <MenuItem onClick={() => handleMenuAction('delete')}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" />
