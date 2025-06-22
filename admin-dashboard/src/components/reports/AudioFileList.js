@@ -20,6 +20,7 @@ import {
   PlayArrow as PlayArrowIcon,
   SelectAll as SelectAllIcon,
   CheckBoxOutlineBlank as DeselectIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { formatToKoreanDateTime } from '../../utils/dateUtils';
 import { formatDuration, formatFileSize } from '../../utils/audioUtils';
@@ -38,13 +39,27 @@ export default function AudioFileList({
   onFileSelect,
   onSelectAll,
   onDeselectAll,
-  onBatchSTT
+  onBatchSTT,
+  onBatchDelete,
+  onFileDeleted
 }) {
   const allFiles = report.audio_files || [];
 
   const hasFiles = allFiles.length > 0;
   const hasSelectedFiles = selectedFileIds.length > 0;
   const allFilesSelected = hasFiles && allFiles.every(file => selectedFileIds.includes(file.id));
+
+  // 파일이 삭제되었을 때 선택 상태에서 제거
+  const handleFileDeleted = (deletedFileId) => {
+    if (onFileDeleted) {
+      onFileDeleted(deletedFileId);
+    }
+  };
+
+  // 메뉴 클릭 시 파일 삭제 후 선택 상태 업데이트
+  const handleMenuClick = (event, file) => {
+    onMenuClick(event, file, () => handleFileDeleted(file.id));
+  };
 
   return (
     <Card
@@ -77,22 +92,41 @@ export default function AudioFileList({
             {hasFiles && (
               <>
                 {hasSelectedFiles && (
-                  <Button
-                    variant="contained"
-                    startIcon={<PlayArrowIcon />}
-                    onClick={onBatchSTT}
-                    sx={{ 
-                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
-                      boxShadow: '0 4px 20px rgba(255, 107, 107, 0.3)',
-                      fontSize: '0.875rem',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #ff5252 0%, #d63031 100%)',
-                        boxShadow: '0 6px 24px rgba(255, 107, 107, 0.4)',
-                      }
-                    }}
-                  >
-                    일괄 STT ({selectedFileIds.length}개)
-                  </Button>
+                  <>
+                    <Button
+                      variant="contained"
+                      startIcon={<PlayArrowIcon />}
+                      onClick={onBatchSTT}
+                      sx={{ 
+                        background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+                        boxShadow: '0 4px 20px rgba(255, 107, 107, 0.3)',
+                        fontSize: '0.875rem',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #ff5252 0%, #d63031 100%)',
+                          boxShadow: '0 6px 24px rgba(255, 107, 107, 0.4)',
+                        }
+                      }}
+                    >
+                      일괄 STT ({selectedFileIds.length}개)
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => onBatchDelete && onBatchDelete(selectedFileIds)}
+                      sx={{ 
+                        fontSize: '0.875rem',
+                        borderColor: 'error.main',
+                        color: 'error.main',
+                        '&:hover': {
+                          backgroundColor: 'rgba(244, 67, 54, 0.04)',
+                          borderColor: 'error.dark',
+                        }
+                      }}
+                    >
+                      일괄 삭제 ({selectedFileIds.length}개)
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="outlined"
@@ -139,7 +173,7 @@ export default function AudioFileList({
             borderRadius: 2 
           }}>
             <Typography variant="body2" color="text.secondary">
-              💡 {selectedFileIds.length}개 파일이 선택되었습니다. "일괄 STT" 버튼을 클릭하여 동일한 설정으로 STT를 시작할 수 있습니다.
+              💡 {selectedFileIds.length}개 파일이 선택되었습니다. "일괄 STT" 버튼을 클릭하여 동일한 설정으로 STT를 시작하거나, "일괄 삭제" 버튼으로 선택된 파일들을 삭제할 수 있습니다.
             </Typography>
           </Box>
         )}
@@ -328,7 +362,7 @@ export default function AudioFileList({
                     />
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <IconButton
-                        onClick={(event) => onMenuClick(event, file)}
+                        onClick={(event) => handleMenuClick(event, file)}
                         size="small"
                         sx={{
                           color: 'text.secondary',

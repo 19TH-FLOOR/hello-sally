@@ -9,7 +9,8 @@ import {
   MenuItem,
   Divider,
   CircularProgress,
-  Button
+  Button,
+  Typography
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import Link from 'next/link';
@@ -144,6 +145,8 @@ export default function ReportDetailPage() {
   // 파일명 편집 상태 추가
   const [editingFileName, setEditingFileName] = useState('');
 
+
+
   // 보고서 데이터가 로드되면 폼 데이터 초기화
   useEffect(() => {
     if (report) {
@@ -239,6 +242,157 @@ export default function ReportDetailPage() {
     }
   };
 
+  // 일괄 삭제 핸들러
+  const handleBatchDelete = (fileIds) => {
+    if (!fileIds || fileIds.length === 0) {
+      toast.error('삭제할 파일을 선택해주세요.');
+      return;
+    }
+
+    const selectedFiles = report.audio_files?.filter(file => 
+      fileIds.includes(file.id)
+    ) || [];
+
+    const fileNames = selectedFiles.map(file => file.display_name || file.filename);
+
+    // Toast 확인 다이얼로그 표시
+    toast((t) => (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '12px',
+        minWidth: '320px',
+        maxWidth: '500px',
+        padding: '8px'
+      }}>
+        <div style={{ 
+          fontSize: '14px', 
+          lineHeight: '1.5',
+          marginBottom: '4px'
+        }}>
+          <div style={{ marginBottom: '8px', fontWeight: '600' }}>
+            선택된 {fileIds.length}개 파일을 삭제하시겠습니까?
+          </div>
+          <div style={{ 
+            backgroundColor: '#fef2f2',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            fontSize: '13px',
+            marginBottom: '8px'
+          }}>
+            ⚠️ 삭제된 파일은 복원할 수 없습니다.
+          </div>
+          <div style={{ 
+            backgroundColor: '#f9fafb',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: '1px solid #e5e7eb',
+            maxHeight: '120px',
+            overflow: 'auto'
+          }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+              삭제될 파일 목록:
+            </div>
+            {fileNames.map((fileName, index) => (
+              <div key={index} style={{ 
+                fontSize: '12px',
+                color: '#374151',
+                padding: '2px 0',
+                borderBottom: index < fileNames.length - 1 ? '1px solid #e5e7eb' : 'none'
+              }}>
+                • {fileName}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+            }}
+            style={{
+              background: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#4b5563'}
+            onMouseLeave={(e) => e.target.style.background = '#6b7280'}
+          >
+            취소
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              toast.loading('파일 삭제 중...', { id: 'batchDelete' });
+
+              try {
+                // 모든 파일을 병렬로 삭제
+                const deletePromises = fileIds.map(fileId => 
+                  fetch(`${API_BASE_URL}/audio-files/${fileId}`, {
+                    method: 'DELETE'
+                  })
+                );
+
+                const responses = await Promise.all(deletePromises);
+                const failedDeletes = responses.filter(response => !response.ok);
+
+                if (failedDeletes.length > 0) {
+                  throw new Error(`${failedDeletes.length}개 파일 삭제에 실패했습니다.`);
+                }
+
+                // 성공한 경우 선택 상태 초기화
+                setSelectedFileIds([]);
+                
+                toast.success(`${fileIds.length}개 파일이 삭제되었습니다.`, { id: 'batchDelete' });
+                
+                // 보고서 데이터 새로고침
+                fetchReportDetail();
+              } catch (error) {
+                console.error('일괄 삭제 실패:', error);
+                toast.error(error.message || '일괄 삭제 중 오류가 발생했습니다.', { id: 'batchDelete' });
+              }
+            }}
+            style={{
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+            onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+          >
+            삭제 ({fileIds.length}개)
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+      style: { 
+        minWidth: '340px',
+        maxWidth: '520px',
+        padding: '16px'
+      }
+    });
+  };
+
+  // 파일 삭제 후 선택 상태에서 제거
+  const handleFileDeleted = (deletedFileId) => {
+    setSelectedFileIds(prev => prev.filter(id => id !== deletedFileId));
+  };
+
   // 보고서 수정 핸들러
   const handleUpdateReport = async () => {
     setFormLoading(true);
@@ -250,9 +404,13 @@ export default function ReportDetailPage() {
   };
 
   // 케밥 메뉴 핸들러들
-  const handleMenuClick = (event, file) => {
+  const handleMenuClick = (event, file, onFileDeleted) => {
     setAnchorEl(event.currentTarget);
     setSelectedFileForMenu(file);
+    // 파일 삭제 후 콜백 저장
+    if (onFileDeleted) {
+      setSelectedFileForMenu({ ...file, onFileDeleted });
+    }
   };
 
   const handleMenuClose = () => {
@@ -304,6 +462,10 @@ export default function ReportDetailPage() {
         break;
       case 'delete':
         actions.deleteAudioFile(selectedFileForMenu.id, selectedFileForMenu.filename);
+        // 파일 삭제 후 선택 상태에서 제거
+        if (selectedFileForMenu.onFileDeleted) {
+          selectedFileForMenu.onFileDeleted();
+        }
         break;
     }
     handleMenuClose();
@@ -610,6 +772,8 @@ export default function ReportDetailPage() {
             onSelectAll={handleSelectAll}
             onDeselectAll={handleDeselectAll}
             onBatchSTT={handleBatchSTT}
+            onBatchDelete={handleBatchDelete}
+            onFileDeleted={handleFileDeleted}
           />
         </Grid>
 
